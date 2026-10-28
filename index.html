@@ -96,6 +96,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 #tour{position:fixed;left:50%;transform:translateX(-50%);bottom:max(18px,calc(env(safe-area-inset-bottom,0px) + 14px));z-index:6;width:min(440px,calc(100% - 32px))}
 .tcard{background:var(--glass);border:1px solid rgba(255,201,138,.45);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .tcard p{margin:0;font-size:14px;line-height:1.45;color:var(--ink)}
+.tnever{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);cursor:pointer}
+.tnever input{accent-color:var(--accent);width:15px;height:15px;margin:0}
 .tdots{margin-left:auto;font-family:var(--f-data);font-size:11px;color:var(--dim);letter-spacing:.14em}
 #toast{position:fixed;left:50%;top:max(92px,calc(env(safe-area-inset-top,0px) + 84px));transform:translate(-50%,-6px);opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;z-index:5;
   background:var(--glass);border:1px solid var(--faint);border-radius:999px;padding:9px 16px;font-size:13px;white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
@@ -230,7 +232,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 <div id="tour" hidden>
   <div class="tcard">
     <p id="tourText"></p>
-    <div class="row"><button class="btn primary" id="tourNext">Next</button><button class="btn ghost" id="tourSkip">Skip the tour</button><span class="tdots" id="tourDots"></span></div>
+    <div class="row"><button class="btn primary" id="tourNext">Next</button><button class="btn ghost" id="tourSkip">Close for now</button><span class="tdots" id="tourDots"></span></div>
+    <label class="tnever"><input type="checkbox" id="tourNever"> Don't show these lessons again</label>
   </div>
 </div>
 <div id="toast" role="status"></div>
@@ -1257,14 +1260,22 @@ const tour={i:-1,n0:0,p0:0,m0:0,h0:0,t:0,list:TOUR1,key:'-tour'};
 function countPlanets(){ return stars.reduce((a,s)=>a+s.planets.length,0); }
 function countMoons(){ return stars.reduce((a,s)=>a+s.planets.reduce((b,p)=>b+p.moons.length,0),0); }
 function tourSnap(){ tour.n0=stars.length; tour.p0=countPlanets(); tour.m0=countMoons(); tour.h0=holes.length; }
-function tourShow(i){ const L=tour.list; tour.i=i; if(i>=L.length){ tourEnd(); return; } const st=L[i]; $('#tourText').textContent=st.t; $('#tourDots').textContent=`${i+1} / ${L.length}`;
+function tourShow(i){ const L=tour.list; tour.i=i; if(i>=L.length){ tourEnd(true); return; } const st=L[i]; tourSave({lesson:L===TOUR2?2:1,step:i}); $('#tourText').textContent=st.t; $('#tourDots').textContent=`${i+1} / ${L.length}`;
   $('#tourNext').textContent=st.next||(i===L.length-1?'Finish':'Next'); $('#tour').hidden=false; hint.hidden=true; }
-function tourBegin(list,key){ closeSheets(); tour.list=list; tour.key=key; tourSnap(); tourShow(0); }
-function tourStart(){ if(visiting) return; try{ if(localStorage.getItem(STORE+'-tour')==='1') return; }catch(e){} tourBegin(TOUR1,'-tour'); }
-function tourEnd(){ tour.i=-1; $('#tour').hidden=true; hint.hidden=!!sel; try{ localStorage.setItem(STORE+tour.key,'1'); }catch(e){} }
+/* lessons come back on every visit, resuming where you left off, until both are finished or you ask them not to */
+function tourState(){ try{ return JSON.parse(localStorage.getItem(STORE+'-lessons')||'{}')||{}; }catch(e){ return {}; } }
+function tourSave(patch){ try{ localStorage.setItem(STORE+'-lessons',JSON.stringify(Object.assign(tourState(),patch))); }catch(e){} }
+function tourBegin(list,key,step){ closeSheets(); tour.list=list; tour.key=key; tourSnap(); $('#tourNever').checked=false; tourShow(step||0); }
+function tourStart(){ if(visiting) return; const st=tourState(); if(st.never||st.done) return;
+  if(st.lesson===2) tourBegin(TOUR2,'-tour2',Math.min(st.step||0,TOUR2.length-1)); else tourBegin(TOUR1,'-tour',Math.min(st.step||0,TOUR1.length-1)); }
+function tourEnd(finished){ const list=tour.list; tour.i=-1; $('#tour').hidden=true; hint.hidden=!!sel;
+  if($('#tourNever').checked) tourSave({never:true});
+  else if(finished&&list===TOUR2) tourSave({done:true});
+  else if(finished&&list===TOUR1) tourSave({lesson:2,step:0}); }
 function tourTick(dt){ if(tour.i<0) return; tour.t+=dt; if(tour.t<.5) return; tour.t=0; const st=tour.list[tour.i]; if(st.done&&st.done()){ tourSnap(); const nxt=tour.i+1; tour.i=-2; setTimeout(()=>{ if(tour.i===-2) tourShow(nxt); },900); } }
-$('#tourNext').addEventListener('click',()=>{ const st=tour.list[Math.max(tour.i,0)]; if(st&&st.next){ tourEnd(); tourBegin(TOUR2,'-tour2'); return; } tourSnap(); tourShow(Math.max(tour.i,0)+1); });
-$('#tourSkip').addEventListener('click',tourEnd);
+$('#tourNext').addEventListener('click',()=>{ const st=tour.list[Math.max(tour.i,0)]; if(st&&st.next){ tourEnd(true); tourBegin(TOUR2,'-tour2'); return; } tourSnap(); tourShow(Math.max(tour.i,0)+1); });
+$('#tourSkip').addEventListener('click',()=>tourEnd(false));
+$('#tourNever').addEventListener('change',e=>{ if(e.target.checked){ tourSave({never:true}); toast('Lessons hidden. Replay them any time from the Guide.'); } else tourSave({never:false}); });
 /* the guide: short chapters, plus a button that starts the guided lesson */
 const GUIDE=[
   ['Planting','Tap empty space to plant a star; its class (and so its colour, mass and lifetime) is rolled for you, and about one in seven arrives as a binary pair. Each star is born with a protoplanetary disc that lasts five million years. Switch Plant to Black hole to plant one of those instead.'],
@@ -1281,8 +1292,8 @@ const GUIDE=[
 ];
 $('#guideList').innerHTML=GUIDE.map(([h,t])=>`<details><summary>${h}</summary><p>${t}</p></details>`).join('');
 $('#guideBtn').addEventListener('click',()=>openSheet('#guideSheet'));
-$('#guideLesson').addEventListener('click',()=>tourBegin(TOUR2,'-tour2'));
-$('#guideBasics').addEventListener('click',()=>tourBegin(TOUR1,'-tour'));
+$('#guideLesson').addEventListener('click',()=>tourBegin(TOUR2,'-tour2',0));
+$('#guideBasics').addEventListener('click',()=>tourBegin(TOUR1,'-tour',0));
 /* mobile layout: the top bar keeps only Plant, Time and Menu; everything else moves into the menu sheet */
 let mobile=false;
 const RATE_NAMES=['Pause','day/s','mo/s','yr/s','kyr/s','Myr/s'];
@@ -1535,7 +1546,7 @@ function start(snap){
   const state=(snap&&Array.isArray(snap.stars))?snap:(loadSaved()||sample());
   loadState(state); desiredDist=null;
   try{ const sv=localStorage.getItem(STORE+'-sound'); if(sv==='0'){ soundOn=false; $('#sound').setAttribute('aria-pressed','false'); $('#soundT').textContent='Sound off'; $('#wave').style.display='none'; } }catch(e){}
-  renderDisc(); layout(); setTimeout(tourStart,1200);
+  renderDisc(); layout(); try{ if(localStorage.getItem(STORE+'-tour')==='1'&&!localStorage.getItem(STORE+'-lessons')) tourSave({lesson:2,step:0}); }catch(e){} setTimeout(tourStart,1200);
   requestAnimationFrame(t=>{ last=t; frame(t); });
 }
 try{ window.claude?.hot?.snapshot?.(()=>serialize()); }catch(e){}
