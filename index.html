@@ -94,6 +94,16 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   font-size:12.5px;color:var(--dim);text-align:center;text-shadow:0 0 8px #000}
 #hint span b{color:var(--ink);font-weight:600}
 #slowBadge{color:var(--accent)!important}
+#dailyLine{color:var(--ink)!important}
+.score{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin:0;padding:10px 0;border-top:1px solid var(--faint);border-bottom:1px solid var(--faint)}
+.score dt{font-size:13px;color:var(--dim)} .score dd{margin:0;font-family:var(--f-data);font-variant-numeric:tabular-nums;text-align:right;color:var(--ink)}
+.score .tot dt,.score .tot dd{font-weight:600;color:var(--accent);font-size:15px}
+.board{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none;font-family:var(--f-data);font-size:13px}
+.board li{display:flex;gap:10px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.03)}
+.board li.me{background:rgba(255,201,138,.1);color:var(--accent)}
+.board li span:last-child{margin-left:auto;font-variant-numeric:tabular-nums}
+.field{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.field input{font:14px var(--f-ui);color:var(--ink);background:rgba(0,0,0,.35);border:1px solid var(--faint);border-radius:10px;padding:10px 12px;min-width:0;flex:1}
 #eventBar{position:fixed;left:50%;transform:translateX(-50%);top:var(--barH);z-index:5;display:flex;align-items:center;gap:10px;max-width:calc(100% - 32px);
   background:var(--glass);border:1px solid rgba(255,201,138,.5);border-radius:12px;padding:8px 8px 8px 14px;font-size:13px;color:var(--ink);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 12px 40px rgba(0,0,0,.45)}
 #eventBar .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);flex:none;animation:pulse 1.4s ease-in-out infinite}
@@ -200,6 +210,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <p id="counts">—</p>
       <p id="clock">T + 0 d</p>
       <p id="slowBadge" hidden></p>
+      <p id="dailyLine" hidden></p>
     </div>
     <div class="tools">
       <button class="chip" id="timeChip" hidden aria-haspopup="true" aria-expanded="false"><span class="n">TIME</span><span id="timeChipT">mo/s</span></button>
@@ -219,6 +230,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
         <button data-rate="4" aria-pressed="false" title="A million years per second">Myr/s</button>
       </div>
       <button class="chip" id="discBtn"><span>Discoveries</span><span class="n" id="discN">0/20</span></button>
+      <button class="chip" id="dailyBtn"><span>Daily</span></button>
       <button class="chip" id="atlasBtn" aria-pressed="false"><span>Atlas</span></button>
       <button class="chip" id="guideBtn"><span>Guide</span></button>
       <button class="chip" id="shareBtn"><span>Share</span></button>
@@ -282,6 +294,12 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     <div class="prog"><i id="discBar" style="width:0"></i></div>
     <p id="discP"></p>
     <div class="disc" id="discGrid"></div>
+  </div>
+</div>
+<div class="sheet" id="dailySheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="dailyH">
+    <div class="ph"><h2 id="dailyH">Daily challenge</h2><button class="x" data-close aria-label="Close">×</button></div>
+    <div id="dailyBody"></div>
   </div>
 </div>
 <div class="sheet drawer" id="atlasSheet" hidden>
@@ -353,8 +371,9 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 const $=s=>document.querySelector(s);
 const coarse=matchMedia('(pointer: coarse)').matches;
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const rand=(a,b)=>a+(b-a)*Math.random();
-const pick=a=>a[Math.floor(Math.random()*a.length)];
+let RNG=Math.random; /* swapped for a seeded generator while building the daily universe */
+const rand=(a,b)=>a+(b-a)*RNG();
+const pick=a=>a[Math.floor(RNG()*a.length)];
 const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 const easeOut=t=>1-Math.pow(1-t,3);
 const easeBack=t=>{const c1=1.9,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2);};
@@ -636,7 +655,8 @@ function eventSoon(){ if(ypr<1e3||!slowOn) return null; const win=ypr*2.5;
       if(a>=L&&L+G-a<win) return {s,what:massive?(primaryMass(s)>20?`${s.d.name} is about to collapse`:`${s.d.name} is about to go supernova`):`${s.d.name} is about to shed its outer layers`}; }
     if(feeding(s)&&(s.d.mass-.08)/transferRate(s,s.boundHole)<win) return {s,what:`${s.d.name} is about to be swallowed`}; }
   return null; }
-function fmtYears(y){ y=Math.max(0,y); if(y<1) return `${Math.max(1,Math.round(y*365.25))} d`; if(y<1e3) return `${Math.round(y).toLocaleString('en-US')} yr`; if(y<1e6) return `${(y/1e3).toPrecision(3).replace(/\.?0+$/,'')} kyr`; if(y<1e9) return `${(y/1e6).toPrecision(3).replace(/\.?0+$/,'')} Myr`; return `${(y/1e9).toPrecision(3).replace(/\.?0+$/,'')} Gyr`; }
+function sig3(v){ return (v<10?v.toFixed(2):v<100?v.toFixed(1):String(Math.round(v))).replace(/\.?0+$/,''); }
+function fmtYears(y){ y=Math.max(0,y); if(y<1) return `${Math.max(1,Math.round(y*365.25))} d`; if(y<1e3) return `${Math.round(y).toLocaleString('en-US')} yr`; if(y<999.5e3) return `${sig3(y/1e3)} kyr`; if(y<999.5e6) return `${sig3(y/1e6)} Myr`; return `${sig3(y/1e9)} Gyr`; }
 function fmtReal(sec){ if(sec<90) return `${Math.max(1,Math.round(sec))} s`; if(sec<5400) return `${(sec/60).toFixed(sec<600?1:0)} min`; if(sec<172800) return `${(sec/3600).toFixed(1)} h`; if(sec<3.2e7) return `${Math.round(sec/86400)} days`; return 'longer than you'; }
 function realAt(y){ return ypr>0?` · ${fmtReal(y/ypr)} at this speed`:''; }
 function periodYears(aUnits,M){ const a=aUnits/15; return Math.sqrt(a*a*a/Math.max(M,.01)); }
@@ -655,7 +675,7 @@ const PALETTES={
 };
 const ATMO={rocky:'#7cb8ff',ocean:'#6fb2ff',lava:'#ff7b3d',ice:'#bfe6ff'};
 const SYL=['ka','vel','or','sa','thi','mor','an','el','ri','zu','nae','os','tar','ly','qua','ven','ix','ar','eth','ul','sor','pha','do','mi','ra','ne','cy','lo','bre','is','ka','tem'];
-function makeName(R=Math.random){ let n=''; const k=R()<.6?2:3; for(let i=0;i<k;i++) n+=SYL[Math.floor(R()*SYL.length)]; return n.charAt(0).toUpperCase()+n.slice(1); }
+function makeName(R=RNG){ let n=''; const k=R()<.6?2:3; for(let i=0;i<k;i++) n+=SYL[Math.floor(R()*SYL.length)]; return n.charAt(0).toUpperCase()+n.slice(1); }
 function jitter(hex){ const c=new THREE.Color(hex); c.offsetHSL(rand(-.025,.025),rand(-.06,.06),rand(-.035,.035)); return '#'+c.getHexString(); }
 const ROMAN=['I','II','III','IV','V'];
 
@@ -812,16 +832,16 @@ function makeHole(d,animate){
 }
 
 /* ---------- generators ---------- */
-function rollClass(){ let r=Math.random(),cls='M'; for(const k in STAR_TYPES){ r-=STAR_TYPES[k].w; if(r<=0){cls=k;break;} } return cls; }
+function rollClass(){ let r=RNG(),cls='M'; for(const k in STAR_TYPES){ r-=STAR_TYPES[k].w; if(r<=0){cls=k;break;} } return cls; }
 function genStar(x,z){
   const cls=rollClass(), T=STAR_TYPES[cls], n=catalogN++;
   const d={name:makeName(),catalog:'PU-'+String(n).padStart(4,'0'),cls,temp:Math.round(rand(T.t[0],T.t[1])/10)*10,mass:+(T.m*rand(.85,cls==='O'?1.6:1.15)).toFixed(2),x,z,seed:rand(0,60),age:0,planets:[]};
-  if(stars.length>=2&&Math.random()<.14){ const c2=pick(['G','K','K','M','M','A','F']); d.binary={cls:c2,sep:+(T.r+STAR_TYPES[c2].r+rand(3,6)).toFixed(1),seed:rand(0,60)}; d.mass=+(d.mass+STAR_TYPES[c2].m*rand(.85,1.15)).toFixed(2); }
+  if(stars.length>=2&&RNG()<.14){ const c2=pick(['G','K','K','M','M','A','F']); d.binary={cls:c2,sep:+(T.r+STAR_TYPES[c2].r+rand(3,6)).toFixed(1),seed:rand(0,60)}; d.mass=+(d.mass+STAR_TYPES[c2].m*rand(.85,1.15)).toFixed(2); }
   return d;
 }
 function genPlanet(s,orbit,size,type){
   const colors=pick(PALETTES[type]).map(jitter);
-  const rings=Math.random()<({gas:.55,ice:.3}[type]||.06);
+  const rings=RNG()<({gas:.55,ice:.3}[type]||.06);
   const locked=(orbit/15)<.12*Math.cbrt(s.d.mass); const day=locked?+(periodYears(orbit,s.d.mass)*365.25*24).toFixed(1):+rand(8,60).toFixed(1);
   return {name:`${s.d.name} ${'bcdefghi'[s.planets.length]}`,type,orbit:+orbit.toFixed(2),angle:rand(0,TAU),size:+size.toFixed(2),seed:rand(0,60),
     tilt:locked?rand(-.05,.05):rand(-.45,.45),day,locked,rings,clouds:type==='ocean'||(type==='rocky'&&Math.random()<.7),colors,
@@ -1342,6 +1362,65 @@ function tourTick(dt){ if(tour.i<0) return; tour.t+=dt; if(tour.t<.5) return; to
 $('#tourNext').addEventListener('click',()=>{ const st=tour.list[Math.max(tour.i,0)]; if(st&&st.next){ tourEnd(true); tourBegin(TOUR2,'-tour2'); return; } tourSnap(); tourShow(Math.max(tour.i,0)+1); });
 $('#tourSkip').addEventListener('click',()=>tourEnd(false));
 $('#tourNever').addEventListener('change',e=>{ if(e.target.checked){ tourSave({never:true}); toast('Lessons hidden. Replay them any time from the Guide.'); } else tourSave({never:false}); });
+/* ---------- the daily challenge: one seeded universe for everyone, one billion years, one score ---------- */
+const LEADERBOARD_URL=''; /* set to the score service's URL to enable the shared leaderboard; empty keeps scores on this device */
+const DAILY_SPAN=1e9, DAILY_BUDGET={stars:2,holes:1};
+let mode='sandbox', daily=null;
+function dailyKey(){ const d=new Date(); return `${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}`; }
+function dailyLabel(k){ return `${k.slice(0,4)}-${k.slice(4,6)}-${k.slice(6,8)}`; }
+function genStarD(x,z,cls){ const T=STAR_TYPES[cls], n=catalogN++;
+  return {name:makeName(),catalog:'PU-'+String(n).padStart(4,'0'),cls,temp:Math.round(rand(T.t[0],T.t[1])/10)*10,mass:+(T.m*rand(.85,cls==='O'?1.6:1.15)).toFixed(2),x:+x.toFixed(1),z:+z.toFixed(1),seed:rand(0,60),age:0,planets:[]}; }
+function dailyUniverse(key){ const keep=RNG; RNG=mulberry(+key%2147483647); const saveN=catalogN; catalogN=1;
+  const home=genStarD(0,0,pick(['G','G','K','F'])); home.age=+rand(2e5,8e5).toFixed(0);
+  const side=rand(1,2)>1.5?1:-1; const other=genStarD(rand(75,115)*side,rand(-70,70),pick(['M','K','A','B','O','G'])); other.age=+rand(1e5,6e5).toFixed(0);
+  if(other.cls==='B'||other.cls==='O'){ other.age=+(1e10*Math.pow(other.mass,-2.5)*rand(.6,.97)).toFixed(0); } /* a massive neighbour partway to its end */
+  const st={v:3,t:0,catalogN,holes:[],stars:[home,other],rogues:[],remnants:[],probes:[]};
+  if(RNG()<.4) st.holes.push({name:makeName(),mass:+rand(5,12).toFixed(1),x:+rand(-40,40).toFixed(1),z:+(rand(130,170)*-side).toFixed(1),seed:rand(0,60)});
+  RNG=keep; catalogN=saveN; return st; }
+function dailyRecord(){ try{ return JSON.parse(localStorage.getItem(STORE+'-daily')||'null'); }catch(e){ return null; } }
+function dailySaveRec(){ if(!daily) return; try{ localStorage.setItem(STORE+'-daily',JSON.stringify(daily)); }catch(e){} }
+function dailyBest(){ try{ return JSON.parse(localStorage.getItem(STORE+'-dailybest')||'{}')||{}; }catch(e){ return {}; } }
+function dailyTotal(sc){ return Math.round(sc.life+sc.alive*50+sc.disc*25); }
+function dailyStart(resume){ if(visiting){ toast('Return home before starting a daily run.'); return; } const key=dailyKey();
+  if(mode==='sandbox'){ save(); }
+  const rec=dailyRecord();
+  if(resume&&rec&&rec.key===key&&rec.state){ daily=rec; mode='daily'; loadState(rec.state); }
+  else { daily={key,score:{life:0,alive:0,disc:0},done:false,used:{stars:0,holes:0},disc0:Object.keys(found).length,state:null}; mode='daily'; loadState(dailyUniverse(key)); setRate(-1); }
+  closeSheets(); select(stars[0],true); resetB.hidden=true; $('#dailyBtn').classList.add('warn'); updateCounts();
+  if(!resume||!rec||rec.key!==key) toast(`Daily ${dailyLabel(key)}: time is paused. Build while the discs last, then run the clock.`); }
+function dailyExit(){ if(mode!=='daily') return; if(daily&&!daily.done){ daily.state=serialize(); dailySaveRec(); } mode='sandbox'; daily=null;
+  loadState(loadSaved()||sample()); resetB.hidden=false; $('#dailyBtn').classList.remove('warn'); $('#dailyLine').hidden=true; closeSheets(); toast('Back in your sandbox.'); }
+function dailyTick(dy){ if(mode!=='daily'||!daily||daily.done) return;
+  let alive=0; for(const s of stars) for(const p of s.planets) if(p.alive) alive++;
+  daily.score.life+=alive*dy/1e6; daily.score.alive=alive; daily.score.disc=Math.max(0,Object.keys(found).length-daily.disc0);
+  if(simT>=DAILY_SPAN){ daily.done=true; daily.final=dailyTotal(daily.score); daily.state=null; dailySaveRec(); const best=dailyBest(); if(!best[daily.key]||daily.final>best[daily.key]){ best[daily.key]=daily.final; try{ localStorage.setItem(STORE+'-dailybest',JSON.stringify(best)); }catch(e){} }
+    setRate(-1); dailySheet(); boom(.4); toast(`One billion years. Legacy: ${daily.final.toLocaleString('en-US')}`); } }
+function dailyStatus(){ if(mode!=='daily'||!daily) return; const l=$('#dailyLine'); l.hidden=false; l.textContent=daily.done?`Daily ${dailyLabel(daily.key)} · finished · Legacy ${daily.final.toLocaleString('en-US')}`:`Daily ${dailyLabel(daily.key)} · ${fmtYears(simT)} of 1 Gyr · Legacy ${dailyTotal(daily.score).toLocaleString('en-US')} · ${daily.score.alive} living world${daily.score.alive===1?'':'s'}`; }
+function scoreRows(sc,total){ return `<dl class="score"><dt>Life sustained</dt><dd>${Math.round(sc.life).toLocaleString('en-US')} <small>(1 per living world per Myr)</small></dd><dt>Worlds alive at the end</dt><dd>${sc.alive} × 50</dd><dt>Discoveries during the run</dt><dd>${sc.disc} × 25</dd><div class="tot" style="display:contents"><dt>Legacy</dt><dd>${total.toLocaleString('en-US')}</dd></div></dl>`; }
+async function dailySheet(){ const key=dailyKey(), rec=dailyRecord(), best=dailyBest()[key]; let h='';
+  if(mode==='daily'&&daily){ const total=daily.done?daily.final:dailyTotal(daily.score);
+    h+=`<p><b style="color:var(--ink)">${dailyLabel(daily.key)}</b> · ${daily.done?'Run complete.':`${fmtYears(simT)} of 1 Gyr. Stars planted ${daily.used.stars}/${DAILY_BUDGET.stars}, black holes ${daily.used.holes}/${DAILY_BUDGET.holes}.`}</p>`+scoreRows(daily.score,total);
+    if(daily.done) h+=`<div class="row"><button class="btn primary" id="dCopy">Copy score card</button><button class="btn ghost" id="dAgain">Try today again</button><button class="btn ghost" id="dExit">Back to sandbox</button></div>`;
+    else h+=`<div class="row"><button class="btn primary" data-close>Keep playing</button><button class="btn ghost" id="dExit">Pause and leave</button></div>`;
+  } else {
+    h+=`<p>The same starting universe for everyone, every day: two young stars with fresh discs, and sometimes trouble nearby. You have <b style="color:var(--ink)">one billion years</b>, two extra stars and one black hole. Score comes from keeping worlds alive: one point per living world per million years, plus bonuses at the end. Build while the discs last (5 Myr), then run the clock.</p>`;
+    h+=`<p>Today is <b style="color:var(--ink)">${dailyLabel(key)}</b>${best!==undefined?` · your best so far: <b style="color:var(--accent)">${best.toLocaleString('en-US')}</b>`:''}.</p>`;
+    h+=`<div class="row"><button class="btn primary" id="dStart">${rec&&rec.key===key&&rec.state&&!rec.done?'Resume today\'s run':'Start today\'s run'}</button>${rec&&rec.key===key&&rec.state&&!rec.done?'<button class="btn ghost" id="dFresh">Start over</button>':''}</div>`;
+  }
+  h+=`<div class="rule"></div><div id="dBoard"><p class="eyebrow" style="margin-bottom:8px">Leaderboard · ${dailyLabel(key)}</p>${LEADERBOARD_URL?'<p>Loading…</p>':'<p>Scores stay on this device until the shared leaderboard is switched on.</p>'}</div>`;
+  $('#dailyBody').innerHTML=h; openSheet('#dailySheet');
+  const on=(id,f)=>{ const el=document.getElementById(id); if(el) el.addEventListener('click',f); };
+  on('dStart',()=>dailyStart(true)); on('dFresh',()=>dailyStart(false)); on('dAgain',()=>dailyStart(false)); on('dExit',dailyExit);
+  on('dCopy',async()=>{ const t=`Pocket Universe · Daily ${dailyLabel(daily.key)}\nLegacy ${daily.final.toLocaleString('en-US')} · ${Math.round(daily.score.life)} life-Myr · ${daily.score.alive} worlds alive · ${daily.score.disc} discoveries\nhttps://beese-dev.github.io/pocket_universe/`; try{ await navigator.clipboard.writeText(t); toast('Score card copied.'); }catch(e){ toast(t); } });
+  if(LEADERBOARD_URL) loadBoard(key); }
+async function loadBoard(key){ const el=$('#dBoard'); try{ const r=await fetch(`${LEADERBOARD_URL}?day=${key}`); const list=await r.json(); const me=dailyBest()[key];
+    el.innerHTML=`<p class="eyebrow" style="margin-bottom:8px">Leaderboard · ${dailyLabel(key)}</p>`+(list.length?`<ol class="board">${list.slice(0,10).map((e,i)=>`<li class="${me===e.score?'me':''}"><span>${i+1}.</span><span>${String(e.name).slice(0,16).replace(/[<>&]/g,'')}</span><span>${(+e.score).toLocaleString('en-US')}</span></li>`).join('')}</ol>`:'<p>No scores yet today. Be first.</p>')
+      +(daily&&daily.done&&!daily.sent?`<div class="field" style="margin-top:10px"><input id="dName" maxlength="16" placeholder="Your name" aria-label="Your name"><button class="btn primary" id="dSend">Submit ${daily.final.toLocaleString('en-US')}</button></div>`:'');
+    const b=document.getElementById('dSend'); if(b) b.addEventListener('click',async()=>{ const name=(document.getElementById('dName').value||'Anonymous').trim(); b.disabled=true;
+      try{ await fetch(LEADERBOARD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({day:daily.key,name,score:daily.final,life:Math.round(daily.score.life),alive:daily.score.alive,disc:daily.score.disc})}); daily.sent=true; dailySaveRec(); toast('Score submitted.'); loadBoard(key); }catch(e){ b.disabled=false; toast('Could not reach the leaderboard.'); } });
+  }catch(e){ el.innerHTML='<p>The leaderboard is not reachable right now.</p>'; } }
+$('#dailyBtn').addEventListener('click',dailySheet);
+
 /* the atlas: a live tree of everything in the universe; click to fly there */
 let atlasRefs=[], atlasT=0, atlasSig=''; const atlasOpen={};
 function aEnt(o,label,kind,cls){ const i=atlasRefs.push(o)-1; const col=o.kind==='star'?o.T.col:o.kind==='hole'?'#ff9a4a':(o.d.colors?o.d.colors[1]:'#bdb9c2');
@@ -1382,6 +1461,7 @@ const GUIDE=[
   ['Probes','Select a planet or moon, press Launch probe, and tap any star, planet, moon or black hole as the destination. The probe leaves above escape velocity, is bent by every star on the way, corrects its course with small burns, and files a report on arrival. Probes in flight are saved with your universe.'],
   ['Rogue worlds','Planets freed by a supernova, a dying giant or a drained star drift away on their own momentum. One that passes slowly enough through another system can be captured into a new orbit there; otherwise it fades into interstellar space.'],
   ['Sharing and starting over','Share packs every star, planet, moon and name into a code. A friend pastes it into their own copy of the page to visit; their universe stays saved and Return home brings them back. New universe erases everything after a second confirmation; discoveries are kept. Everything is saved in this browser only.'],
+  ['Daily challenge','Daily gives everyone the same seeded universe each day and one billion years. You may plant two extra stars and one black hole; planets, moons and probes are unlimited. Legacy score is one point per living world per million years, plus 50 per world still alive at the end and 25 per discovery made during the run. Build while the discs last, then run the clock; your sandbox is kept safe and restored when you leave.'],
   ['Getting around','The Atlas (L on a keyboard) lists every star, planet, moon, black hole, rogue world and probe; click one to fly to it. Desktop: drag to spin, scroll to zoom, right-drag or arrow keys to pan, O for Overview, Escape to deselect. Phone: one finger moves, two fingers spin, pinch to zoom; the menu can swap one-finger to spin. Selecting something makes the camera follow it; dragging away releases it, and tapping it again resumes. Zoom far enough out and the galaxy appears.'],
 ];
 $('#guideList').innerHTML=GUIDE.map(([h,t])=>`<details><summary>${h}</summary><p>${t}</p></details>`).join('');
@@ -1393,8 +1473,8 @@ let mobile=false;
 const RATE_NAMES=['Pause','day/s','mo/s','yr/s','kyr/s','Myr/s'];
 function layout(){ const m=coarse&&Math.min(innerWidth,innerHeight)<700||innerWidth<620; if(m===mobile) return; mobile=m; document.body.classList.toggle('mobile',m);
   const tools=$('.tools'), menu=$('#menuGrid'), tg=$('#timeGrid');
-  if(m){ menu.append($('#overview'),$('#atlasBtn'),$('#guideBtn'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#slowSeg'),$('#touchSeg'),$('#reset'),$('#resetNo')); $('#touchSeg').hidden=!coarse; tg.append($('#timeSeg')); $('#timeChip').hidden=false; $('#menuChip').hidden=false; }
-  else { tools.append($('#seedSeg'),$('#timeSeg'),$('#discBtn'),$('#atlasBtn'),$('#guideBtn'),$('#shareBtn'),$('#sound'),$('#slowSeg'),$('#touchSeg'),$('#overview'),$('#reset'),$('#resetNo'),$('#homeBtn')); $('#touchSeg').hidden=true; $('#timeChip').hidden=true; $('#menuChip').hidden=true; closeSheets(); }
+  if(m){ menu.append($('#overview'),$('#dailyBtn'),$('#atlasBtn'),$('#guideBtn'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#slowSeg'),$('#touchSeg'),$('#reset'),$('#resetNo')); $('#touchSeg').hidden=!coarse; tg.append($('#timeSeg')); $('#timeChip').hidden=false; $('#menuChip').hidden=false; }
+  else { tools.append($('#seedSeg'),$('#timeSeg'),$('#discBtn'),$('#dailyBtn'),$('#atlasBtn'),$('#guideBtn'),$('#shareBtn'),$('#sound'),$('#slowSeg'),$('#touchSeg'),$('#overview'),$('#reset'),$('#resetNo'),$('#homeBtn')); $('#touchSeg').hidden=true; $('#timeChip').hidden=true; $('#menuChip').hidden=true; closeSheets(); }
   applyCompact(); }
 $('#menuChip').addEventListener('click',()=>openSheet('#menuSheet'));
 $('#eventBack').addEventListener('click',eventReturn);
@@ -1451,7 +1531,7 @@ $('#overview').addEventListener('click',()=>{ if(mobile) closeSheets(); });
 $('#shareBtn').addEventListener('click',async()=>{ tourFlags.share=true; openSheet('#shareSheet'); $('#copyMsg').textContent=''; $('#visitMsg').textContent=''; $('#shareOut').value='Packing your universe…'; $('#shareOut').value=await encode(serialize()); });
 $('#copyBtn').addEventListener('click',async()=>{ const ta=$('#shareOut'); try{ await navigator.clipboard.writeText(ta.value); $('#copyMsg').textContent='Copied.'; }
   catch(e){ ta.focus(); ta.select(); $('#copyMsg').textContent='Select the code and copy it.'; } });
-$('#visitBtn').addEventListener('click',async()=>{ const code=$('#shareIn').value.trim(); const msg=$('#visitMsg'); if(!code){ msg.textContent='Paste a code first.'; return; }
+$('#visitBtn').addEventListener('click',async()=>{ const code=$('#shareIn').value.trim(); const msg=$('#visitMsg'); if(mode==='daily'){ msg.textContent='Leave the daily run before visiting.'; return; } if(!code){ msg.textContent='Paste a code first.'; return; }
   let st=null; try{ st=await decode(code); }catch(e){} if(!st||!Array.isArray(st.stars)){ msg.textContent='That code did not unpack. Check it was copied whole.'; return; }
   if(!visiting){ homeState=serialize(); visiting=true; } $('#homeBtn').hidden=false; resetB.hidden=true; disarm();
   loadState(st); closeSheets(); $('#shareIn').value=''; toast(`Visiting a shared universe: ${st.stars.length} star${st.stars.length===1?'':'s'}. Changes here are not saved.`); });
@@ -1482,6 +1562,8 @@ function handleTap(x,y){
   const pad=seedMode==='hole'?10:14;
   for(const s of stars){ if(pt.distanceTo(s.group.position)<outerR(s)+pad){ toast(`Too close to ${s.d.name}. Give it some room.`); return; } }
   for(const h of holes){ const dd=pt.distanceTo(h.group.position); if(seedMode==='hole'?dd<h.r*8+10:dd<h.r*2.4){ toast(seedMode==='hole'?`Too close to ${h.d.name}.`:`Nothing can form that close to ${h.d.name}.`); return; } }
+  if(mode==='daily'&&daily&&!daily.done){ const k=seedMode==='hole'?'holes':'stars'; if(daily.used[k]>=DAILY_BUDGET[k]){ toast(seedMode==='hole'?'Daily rules: one black hole only.':'Daily rules: two extra stars only.'); return; } daily.used[k]++; }
+  if(mode==='daily'&&daily&&daily.done){ toast('This run is over. Start today again, or go back to the sandbox.'); return; }
   seedMode==='hole'?plantHole(pt):plantStar(pt);
 }
 const pointers=new Set(); let tap=null;
@@ -1502,7 +1584,7 @@ function migrate(state){ if((state.v||0)>=3) return state;
   const fixP=p=>{ if(!p.day) p.day=+(24*(.25/(p.spin||.25))).toFixed(1); };
   state.stars.forEach(d=>{ d.age=0; (d.planets||[]).forEach(fixP); }); (state.rogues||[]).forEach(r=>{ r.vx*=44; r.vz*=44; fixP(r.d); }); (state.remnants||[]).forEach(r=>{ r.t=r.t*500; }); state.t=0; state.v=3; return state; }
 let saveT=0; function changed(){ updateCounts(); clearTimeout(saveT); saveT=setTimeout(save,500); if(!$('#atlasSheet').hidden) renderAtlas(); }
-function save(){ if(visiting) return; try{ localStorage.setItem(STORE,JSON.stringify(serialize())); }catch(e){} }
+function save(){ if(visiting) return; if(mode==='daily'){ if(daily&&!daily.done){ daily.state=serialize(); dailySaveRec(); } return; } try{ localStorage.setItem(STORE,JSON.stringify(serialize())); }catch(e){} }
 addEventListener('visibilitychange',()=>{ if(document.hidden) save(); });
 addEventListener('pagehide',save);
 function loadSaved(){ try{ const j=JSON.parse(localStorage.getItem(STORE)||'null'); if(j&&Array.isArray(j.stars)) return j; }catch(e){} return null; }
@@ -1574,7 +1656,7 @@ function frame(t){
         if(!s.d.giant){ s.d.giant=true; s.d.temp=massive?3600:3200; refreshLabel(s); slowEvent(`${s.d.name} is swelling`); focusEvent(s,`Red ${massive?'supergiant':'giant'}: ${s.d.name}`,s.d.catalog+':giant'); toast(`${s.d.name} is swelling into a red ${massive?'supergiant':'giant'}`); discover('giant'); if(sel===s) updatePanel(); }
         const Rg=s.T.r*gf*1.1; for(const p of [...s.planets]) if(p.d.orbit<Rg){ vaporise(s,p); toast(`${s.d.name} swallowed ${p.d.name}`); changed(); } } }
     s.giantF=gf;
-    if(doOrbits){ updateDisc(s); updateHZ(s); }
+    if(doOrbits){ updateDisc(s); updateHZ(s); for(const p of s.planets) p.alive=!!speciesOf(p); }
     if(hasDisc(s)&&dy>0&&s.planets.length<s.d.discN&&s.d.age>2e5&&Math.random()<1-Math.exp(-dy/(DISC_LIFE*.5/s.d.discN))) growPlanet(s,true);
     if(a<1){ k=reduce?1:Math.max(.001,easeBack(clamp(a))); s.suns.forEach(sun=>{ sun.corona.material.opacity=Math.min(1,.8+(1-a)); sun.corona.scale.setScalar(sun.T.r*7*(1+(1-a)*1.6)); }); }
     else { const farK=Math.max(1,camera.position.distanceTo(s.group.getWorldPosition(_tb))/140); s.suns.forEach(sun=>{ const fl=sun.flare||0; sun.corona.material.opacity=.8+fl*.4; sun.corona.scale.setScalar(sun.T.r*7*gf*farK*(1+.035*Math.sin(now*1.2+s.d.seed)+fl*.9)); }); }
@@ -1623,7 +1705,7 @@ function frame(t){
     for(const h of holes){ const d=h.group.position.distanceTo(_tb)*.7; if(d<bd){ bd=d; best=h; isHole=true; } }
     if(best) droneSet(isHole?34:best.T.hz/4,isHole?'hole':best.d.cls); nearPulsar=best&&!isHole&&best.d.cls==='P'; }
   if(nearPulsar&&soundOn&&drone&&now>nextTick){ tick(); nextTick=now+.36; }
-  tourTick(dt); atlasTick(dt);
+  tourTick(dt); atlasTick(dt); dailyTick(dy); if(doOrbits) dailyStatus();
   if(sel&&sel.kind==='hole'&&sel.feed>0&&massT++%30===0) updatePanel();
   if(sel&&sel.kind==='star'&&massT%20===0) updateHZ(sel);
   if(sel&&sel.kind==='star'){ const f=document.getElementById('pFate'), ag=document.getElementById('pAge'); if(f) f.textContent=fateText(sel); if(ag) ag.textContent=fmtYears(sel.d.age); if(feeding(sel)&&massT++%30===0) updatePanel(); }

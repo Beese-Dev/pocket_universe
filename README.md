@@ -14,6 +14,8 @@ Play it: the page is a single `index.html` with no build step. Open it locally o
 - Field notes, postcards, discoveries, share codes, and an ambient generative soundtrack
 - A galaxy to zoom out into, turning once every 230 million years
 
+**Daily challenge:** everyone gets the same seeded universe each UTC day and one billion years; keep worlds alive for the highest Legacy score. A shared leaderboard runs on the small service in `leaderboard/` once deployed.
+
 Everything is saved in your browser. Share codes let a friend visit your universe on their own copy of the page.
 
 ## Running it

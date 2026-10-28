@@ -1,0 +1,7 @@
+name = "pocket-universe-leaderboard"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+
+[[kv_namespaces]]
+binding = "SCORES"
+id = "PASTE_THE_ID_FROM_wrangler_kv_namespace_create_HERE"
