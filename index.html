@@ -47,11 +47,11 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(
 .brand h1{margin:0;font-family:var(--f-name);font-weight:400;font-style:italic;font-size:30px;line-height:1;letter-spacing:-.01em;text-wrap:balance}
 .brand p{margin:0;font-family:var(--f-data);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-variant-numeric:tabular-nums}
 .tools{pointer-events:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-.seg{display:flex;background:var(--glass);border:1px solid var(--faint);border-radius:999px;padding:3px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.seg button,.chip{font:500 12px/1 var(--f-ui);color:var(--dim);background:transparent;border:0;border-radius:999px;padding:8px 11px;cursor:pointer;white-space:nowrap}
+.seg{display:flex;align-items:center;background:var(--glass);border:1px solid var(--faint);border-radius:12px;padding:3px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.seg button,.chip{font:500 12px/1 var(--f-ui);color:var(--dim);background:transparent;border:0;border-radius:9px;padding:8px 11px;cursor:pointer;white-space:nowrap}
 .seg button[aria-pressed="true"]{background:var(--faint);color:var(--ink)}
-.seg .lead{color:var(--dim);padding-right:4px;cursor:default;font-family:var(--f-data);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase}
-.chip{background:var(--glass);border:1px solid var(--faint);color:var(--ink);display:inline-flex;align-items:center;gap:6px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.seg .lead{color:var(--dim);padding:0 6px 0 9px;line-height:1;cursor:default;font-family:var(--f-data);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase}
+.chip{background:var(--glass);border:1px solid var(--faint);border-radius:12px;color:var(--ink);display:inline-flex;align-items:center;gap:6px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 .chip svg{width:14px;height:14px;flex:none}
 .chip.warn{border-color:var(--accent);color:var(--accent)}
 .chip .n{font-family:var(--f-data);font-size:11px;color:var(--dim)}
@@ -81,7 +81,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 .notes dd{margin:0;font-size:13px;line-height:1.4;color:var(--ink)}
 .notes dd.sp{font-family:var(--f-name);font-style:italic;font-size:16px}
 .acts{display:flex;gap:8px;flex-wrap:wrap}
-.btn{font:600 13px/1 var(--f-ui);border-radius:999px;padding:11px 15px;cursor:pointer;border:1px solid transparent}
+.btn{font:600 13px/1 var(--f-ui);border-radius:12px;padding:11px 15px;cursor:pointer;border:1px solid transparent}
 .btn.primary{background:var(--accent);color:var(--accent-ink)}
 .btn.primary:hover{filter:brightness(1.08)}
 .btn.primary:disabled{background:var(--faint);color:var(--dim);cursor:default;filter:none}
@@ -149,7 +149,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   #toast.on{transform:translate(-50%,0)}
   #tour{bottom:auto;top:max(134px,calc(env(safe-area-inset-top,0px) + 128px))}
   /* the panel is a bottom sheet: compact until you ask for more */
-  #pMore{display:inline-flex;background:transparent;border:1px solid var(--faint);color:var(--dim);border-radius:999px;font:500 12px/1 var(--f-ui);padding:8px 11px;cursor:pointer;align-items:center;gap:4px}
+  #pMore{display:inline-flex;background:transparent;border:1px solid var(--faint);color:var(--dim);border-radius:9px;font:500 12px/1 var(--f-ui);padding:8px 11px;cursor:pointer;align-items:center;gap:4px}
   #panel.compact #pStats,#panel.compact #pNotes,#panel.compact #pNotesBtn,#panel.compact #pProbe,#panel.compact #pCard,#panel.compact .namefield small{display:none}
   #panel.compact #pName{font-size:22px}
 }
