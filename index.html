@@ -94,7 +94,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   font-size:12.5px;color:var(--dim);text-align:center;text-shadow:0 0 8px #000}
 #hint span b{color:var(--ink);font-weight:600}
 #slowBadge{color:var(--accent)!important}
-#eventBar{position:fixed;left:50%;transform:translateX(-50%);top:max(132px,calc(env(safe-area-inset-top,0px) + 126px));z-index:5;display:flex;align-items:center;gap:10px;max-width:calc(100% - 32px);
+#eventBar{position:fixed;left:50%;transform:translateX(-50%);top:var(--barH);z-index:5;display:flex;align-items:center;gap:10px;max-width:calc(100% - 32px);
   background:var(--glass);border:1px solid rgba(255,201,138,.5);border-radius:12px;padding:8px 8px 8px 14px;font-size:13px;color:var(--ink);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 12px 40px rgba(0,0,0,.45)}
 #eventBar .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);flex:none;animation:pulse 1.4s ease-in-out infinite}
 #eventBar #eventTxt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -130,6 +130,27 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 .disc div.on{border-color:rgba(255,201,138,.5);background:rgba(255,201,138,.07)}
 .disc div.on b{color:var(--accent)}
 .disc div.on small{opacity:1}
+:root{--barH:132px}
+.sheet.drawer{background:transparent;pointer-events:none;justify-content:flex-end;align-items:flex-start;padding-top:var(--barH)}
+.sheet.drawer .card{pointer-events:auto;width:300px;max-height:calc(100vh - 160px);padding:14px 14px 16px;gap:10px}
+.sheet.drawer .card h2{font-size:22px}
+.atlas{display:flex;flex-direction:column;gap:2px;font-size:13px}
+.atlas details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:6px 4px;border-radius:8px;color:var(--dim);font-family:var(--f-data);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase}
+.atlas details>summary::-webkit-details-marker{display:none}
+.atlas details>summary::before{content:'';width:0;height:0;border-left:5px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .15s;flex:none}
+.atlas details[open]>summary::before{transform:rotate(90deg)}
+.atlas .sys>summary{text-transform:none;letter-spacing:0;font-family:var(--f-ui);font-size:13px;color:var(--ink);padding:3px 4px}
+.atlas .row2{display:flex;flex-direction:column;gap:1px;padding-left:14px}
+.atlas .ent{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:transparent;border:0;color:var(--ink);font:500 13px/1.3 var(--f-ui);padding:6px 8px;border-radius:8px;cursor:pointer;min-width:0}
+.atlas .ent:hover{background:var(--faint)}
+.atlas .ent.on{background:rgba(255,201,138,.12);color:var(--accent)}
+.atlas .ent .sw{width:8px;height:8px;box-shadow:0 0 8px currentColor;flex:none}
+.atlas .ent b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.atlas .ent i{font-style:normal;color:var(--dim);font-family:var(--f-data);font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-left:auto;flex:none}
+.atlas .ent.moon{padding-left:26px;font-size:12.5px}
+.atlas .empty{color:var(--dim);font-size:12.5px;padding:4px 8px 8px}
+.atlas .n{font-family:var(--f-data);color:var(--dim);font-size:10.5px;margin-left:auto}
+@media (max-width:620px){ .sheet.drawer{background:rgba(3,2,8,.55);pointer-events:auto;justify-content:center;align-items:center;padding-top:max(16px,env(safe-area-inset-top,0px))} .sheet.drawer .card{width:min(460px,100%);max-height:min(82vh,680px)} }
 .guide{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--faint)}
 .guide details{border-bottom:1px solid var(--faint)}
 .guide summary{cursor:pointer;padding:11px 2px;font:600 14px/1.3 var(--f-ui);color:var(--ink);list-style:none;display:flex;justify-content:space-between;align-items:center}
@@ -157,8 +178,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   #hint{font-size:11.5px;gap:4px 12px}
   #toast{top:auto;bottom:max(78px,calc(env(safe-area-inset-bottom,0px) + 74px));transform:translate(-50%,6px);font-size:12.5px}
   #toast.on{transform:translate(-50%,0)}
-  #tour{bottom:auto;top:max(134px,calc(env(safe-area-inset-top,0px) + 128px))}
-  #eventBar{top:max(82px,calc(env(safe-area-inset-top,0px) + 76px));font-size:12px}
+  #tour{bottom:auto;top:var(--barH)}
+  #eventBar{font-size:12px}
   /* the panel is a bottom sheet: compact until you ask for more */
   #pMore{display:inline-flex;background:transparent;border:1px solid var(--faint);color:var(--dim);border-radius:9px;font:500 12px/1 var(--f-ui);padding:8px 11px;cursor:pointer;align-items:center;gap:4px}
   #panel.compact #pStats,#panel.compact #pNotes,#panel.compact #pNotesBtn,#panel.compact #pProbe,#panel.compact #pCard,#panel.compact .namefield small{display:none}
@@ -198,6 +219,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
         <button data-rate="4" aria-pressed="false" title="A million years per second">Myr/s</button>
       </div>
       <button class="chip" id="discBtn"><span>Discoveries</span><span class="n" id="discN">0/20</span></button>
+      <button class="chip" id="atlasBtn" aria-pressed="false"><span>Atlas</span></button>
       <button class="chip" id="guideBtn"><span>Guide</span></button>
       <button class="chip" id="shareBtn"><span>Share</span></button>
       <button class="chip" id="sound" aria-pressed="true" title="Sound">
@@ -260,6 +282,12 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     <div class="prog"><i id="discBar" style="width:0"></i></div>
     <p id="discP"></p>
     <div class="disc" id="discGrid"></div>
+  </div>
+</div>
+<div class="sheet drawer" id="atlasSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="atlasH">
+    <div class="ph"><h2 id="atlasH">Atlas</h2><button class="x" data-close aria-label="Close">×</button></div>
+    <div class="atlas" id="atlasList"></div>
   </div>
 </div>
 <div class="sheet" id="guideSheet" hidden>
@@ -1314,6 +1342,34 @@ function tourTick(dt){ if(tour.i<0) return; tour.t+=dt; if(tour.t<.5) return; to
 $('#tourNext').addEventListener('click',()=>{ const st=tour.list[Math.max(tour.i,0)]; if(st&&st.next){ tourEnd(true); tourBegin(TOUR2,'-tour2'); return; } tourSnap(); tourShow(Math.max(tour.i,0)+1); });
 $('#tourSkip').addEventListener('click',()=>tourEnd(false));
 $('#tourNever').addEventListener('change',e=>{ if(e.target.checked){ tourSave({never:true}); toast('Lessons hidden. Replay them any time from the Guide.'); } else tourSave({never:false}); });
+/* the atlas: a live tree of everything in the universe; click to fly there */
+let atlasRefs=[], atlasT=0, atlasSig=''; const atlasOpen={};
+function aEnt(o,label,kind,cls){ const i=atlasRefs.push(o)-1; const col=o.kind==='star'?o.T.col:o.kind==='hole'?'#ff9a4a':(o.d.colors?o.d.colors[1]:'#bdb9c2');
+  return `<button class="ent ${cls||''} ${o===sel?'on':''}" data-i="${i}"><span class="sw" style="color:${col}"></span><b>${label}</b><i>${kind}</i></button>`; }
+function renderAtlas(){ if($('#atlasSheet').hidden) return; atlasRefs=[]; const keyOf=s=>s.d.catalog;
+  let h='';
+  h+=`<details open><summary>Stars<span class="n">${stars.length}</span></summary>`;
+  if(!stars.length) h+='<div class="empty">No stars yet. Tap empty space to plant one.</div>';
+  for(const st of stars){ const k=keyOf(st); const inside=sel&&(sel.star===st||(sel.planet&&sel.planet.star===st)); const open=inside||(atlasOpen[k]===undefined?true:atlasOpen[k]);
+    const kind=st.d.cls==='P'?'pulsar':st.d.cls==='D'?'white dwarf':st.d.giant?'red giant':st.d.binary?`${st.d.cls}+${st.d.binary.cls}`:st.d.cls;
+    h+=`<details class="sys" data-k="${keyOf(st)}" ${open?'open':''}><summary>${aEnt(st,st.d.name,`${kind} · ${st.planets.length}p`)}</summary><div class="row2">`;
+    if(!st.planets.length) h+='<div class="empty">No planets</div>';
+    for(const p of st.planets){ h+=aEnt(p,p.d.name,p.d.core?'core':p.d.scorched?'scorched':p.d.type); for(const m of p.moons) h+=aEnt(m,m.d.name,'moon','moon'); }
+    h+='</div></details>'; }
+  h+='</details>';
+  h+=`<details ${holes.length?'open':''}><summary>Black holes<span class="n">${holes.length}</span></summary>`+(holes.length?holes.map(x=>aEnt(x,x.d.name,`${x.d.mass.toFixed(0)} M☉`)).join(''):'<div class="empty">None. Switch Plant to Black hole.</div>')+'</details>';
+  h+=`<details ${rogues.length?'open':''}><summary>Rogue worlds<span class="n">${rogues.length}</span></summary>`+(rogues.length?rogues.map(x=>aEnt(x,x.d.name,'drifting')).join(''):'<div class="empty">None adrift.</div>')+'</details>';
+  h+=`<details ${probes.length?'open':''}><summary>Probes in flight<span class="n">${probes.length}</span></summary>`+(probes.length?probes.map(x=>aEnt({kind:'probe',pr:x,d:x.d},x.d.name,`to ${x.d.tn}`)).join(''):'<div class="empty">None in flight.</div>')+'</details>';
+  if(h===atlasSig) return; atlasSig=h; $('#atlasList').innerHTML=h; } /* only touch the DOM when something actually changed */
+$('#atlasList').addEventListener('click',e=>{ const b=e.target.closest('.ent'); if(b){ e.preventDefault(); e.stopPropagation(); const o=atlasRefs[+b.dataset.i]; if(!o) return;
+    if(o.kind==='probe'){ select(null); overviewTarget=toWorld(o.pr.pos,new THREE.Vector3()); desiredDist=18; toast(`${o.d.name}, bound for ${o.d.tn}`); }
+    else { eventDismiss(); select(o,true); following=true; }
+    if(mobile) closeSheets(); else renderAtlas(); return; }
+  const sum=e.target.closest('summary'); if(sum&&sum.parentElement.classList.contains('sys')){ const det=sum.parentElement, k=det.dataset.k; setTimeout(()=>{ atlasOpen[k]=det.open; atlasSig=''; renderAtlas(); },0); } });
+$('#atlasBtn').addEventListener('click',()=>{ const sh=$('#atlasSheet'); if(!sh.hidden){ closeSheets(); return; } openSheet('#atlasSheet'); atlasSig=''; renderAtlas(); });
+function barH(){ const r=$('.top').getBoundingClientRect(); document.documentElement.style.setProperty('--barH',Math.round(r.bottom+10)+'px'); }
+function atlasTick(dt){ atlasT+=dt; if(atlasT<1) return; atlasT=0; barH(); if(!$('#atlasSheet').hidden) renderAtlas(); $('#atlasBtn').setAttribute('aria-pressed',String(!$('#atlasSheet').hidden)); }
+
 /* the guide: short chapters, plus a button that starts the guided lesson */
 const GUIDE=[
   ['Planting','Tap empty space to plant a star; its class (and so its colour, mass and lifetime) is rolled for you, and about one in seven arrives as a binary pair. Each star is born with a protoplanetary disc that lasts five million years. Switch Plant to Black hole to plant one of those instead.'],
@@ -1326,7 +1382,7 @@ const GUIDE=[
   ['Probes','Select a planet or moon, press Launch probe, and tap any star, planet, moon or black hole as the destination. The probe leaves above escape velocity, is bent by every star on the way, corrects its course with small burns, and files a report on arrival. Probes in flight are saved with your universe.'],
   ['Rogue worlds','Planets freed by a supernova, a dying giant or a drained star drift away on their own momentum. One that passes slowly enough through another system can be captured into a new orbit there; otherwise it fades into interstellar space.'],
   ['Sharing and starting over','Share packs every star, planet, moon and name into a code. A friend pastes it into their own copy of the page to visit; their universe stays saved and Return home brings them back. New universe erases everything after a second confirmation; discoveries are kept. Everything is saved in this browser only.'],
-  ['Getting around','Desktop: drag to spin, scroll to zoom, right-drag or arrow keys to pan, O for Overview, Escape to deselect. Phone: one finger moves, two fingers spin, pinch to zoom; the menu can swap one-finger to spin. Selecting something makes the camera follow it; dragging away releases it, and tapping it again resumes. Zoom far enough out and the galaxy appears.'],
+  ['Getting around','The Atlas (L on a keyboard) lists every star, planet, moon, black hole, rogue world and probe; click one to fly to it. Desktop: drag to spin, scroll to zoom, right-drag or arrow keys to pan, O for Overview, Escape to deselect. Phone: one finger moves, two fingers spin, pinch to zoom; the menu can swap one-finger to spin. Selecting something makes the camera follow it; dragging away releases it, and tapping it again resumes. Zoom far enough out and the galaxy appears.'],
 ];
 $('#guideList').innerHTML=GUIDE.map(([h,t])=>`<details><summary>${h}</summary><p>${t}</p></details>`).join('');
 $('#guideBtn').addEventListener('click',()=>openSheet('#guideSheet'));
@@ -1337,8 +1393,8 @@ let mobile=false;
 const RATE_NAMES=['Pause','day/s','mo/s','yr/s','kyr/s','Myr/s'];
 function layout(){ const m=coarse&&Math.min(innerWidth,innerHeight)<700||innerWidth<620; if(m===mobile) return; mobile=m; document.body.classList.toggle('mobile',m);
   const tools=$('.tools'), menu=$('#menuGrid'), tg=$('#timeGrid');
-  if(m){ menu.append($('#overview'),$('#guideBtn'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#slowSeg'),$('#touchSeg'),$('#reset'),$('#resetNo')); $('#touchSeg').hidden=!coarse; tg.append($('#timeSeg')); $('#timeChip').hidden=false; $('#menuChip').hidden=false; }
-  else { tools.append($('#seedSeg'),$('#timeSeg'),$('#discBtn'),$('#guideBtn'),$('#shareBtn'),$('#sound'),$('#slowSeg'),$('#touchSeg'),$('#overview'),$('#reset'),$('#resetNo'),$('#homeBtn')); $('#touchSeg').hidden=true; $('#timeChip').hidden=true; $('#menuChip').hidden=true; closeSheets(); }
+  if(m){ menu.append($('#overview'),$('#atlasBtn'),$('#guideBtn'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#slowSeg'),$('#touchSeg'),$('#reset'),$('#resetNo')); $('#touchSeg').hidden=!coarse; tg.append($('#timeSeg')); $('#timeChip').hidden=false; $('#menuChip').hidden=false; }
+  else { tools.append($('#seedSeg'),$('#timeSeg'),$('#discBtn'),$('#atlasBtn'),$('#guideBtn'),$('#shareBtn'),$('#sound'),$('#slowSeg'),$('#touchSeg'),$('#overview'),$('#reset'),$('#resetNo'),$('#homeBtn')); $('#touchSeg').hidden=true; $('#timeChip').hidden=true; $('#menuChip').hidden=true; closeSheets(); }
   applyCompact(); }
 $('#menuChip').addEventListener('click',()=>openSheet('#menuSheet'));
 $('#eventBack').addEventListener('click',eventReturn);
@@ -1347,7 +1403,7 @@ document.querySelectorAll('[data-slow]').forEach(b=>{ b.setAttribute('aria-press
 document.querySelectorAll('[data-touch]').forEach(b=>{ b.setAttribute('aria-pressed',String((b.dataset.touch==='pan')===oneFingerPan)); b.addEventListener('click',()=>{ oneFingerPan=b.dataset.touch==='pan'; applyTouch(); setHint();
   document.querySelectorAll('[data-touch]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); try{ localStorage.setItem(STORE+'-touch',oneFingerPan?'pan':'spin'); }catch(e){} }); });
 $('#timeChip').addEventListener('click',()=>openSheet('#timeSheet'));
-addEventListener('resize',layout);
+addEventListener('resize',()=>{ layout(); barH(); });
 let toastT=0; function toast(msg,disc){ const t=$('#toast'); t.textContent=msg; t.classList.toggle('disc',!!disc); t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),disc?3200:2600); }
 
 /* ---------- top bar ---------- */
@@ -1373,7 +1429,7 @@ $('#overview').addEventListener('click',overview);
 /* keyboard panning: arrows or WASD glide the view across the plane */
 const keys={};
 addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return; const k=e.key.toLowerCase();
-  if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){ keys[k]=true; e.preventDefault(); } if(k==='o') overview();
+  if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){ keys[k]=true; e.preventDefault(); } if(k==='o') overview(); if(k==='l'){ $('#atlasBtn').click(); }
   if(k==='['||k===','){ setRate(Math.max(-1,rateIdx-1)); } if(k===']'||k==='.'){ setRate(Math.min(4,rateIdx+1)); } if(k===' '){ setRate(rateIdx<0?1:-1); e.preventDefault(); } });
 addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
 const _fwd=new THREE.Vector3(), _right=new THREE.Vector3();
@@ -1445,7 +1501,7 @@ function serialize(){ stars.forEach(s=>s.planets.forEach(p=>{ p.d.angle=+(p.angl
 function migrate(state){ if((state.v||0)>=3) return state;
   const fixP=p=>{ if(!p.day) p.day=+(24*(.25/(p.spin||.25))).toFixed(1); };
   state.stars.forEach(d=>{ d.age=0; (d.planets||[]).forEach(fixP); }); (state.rogues||[]).forEach(r=>{ r.vx*=44; r.vz*=44; fixP(r.d); }); (state.remnants||[]).forEach(r=>{ r.t=r.t*500; }); state.t=0; state.v=3; return state; }
-let saveT=0; function changed(){ updateCounts(); clearTimeout(saveT); saveT=setTimeout(save,500); }
+let saveT=0; function changed(){ updateCounts(); clearTimeout(saveT); saveT=setTimeout(save,500); if(!$('#atlasSheet').hidden) renderAtlas(); }
 function save(){ if(visiting) return; try{ localStorage.setItem(STORE,JSON.stringify(serialize())); }catch(e){} }
 addEventListener('visibilitychange',()=>{ if(document.hidden) save(); });
 addEventListener('pagehide',save);
@@ -1567,7 +1623,7 @@ function frame(t){
     for(const h of holes){ const d=h.group.position.distanceTo(_tb)*.7; if(d<bd){ bd=d; best=h; isHole=true; } }
     if(best) droneSet(isHole?34:best.T.hz/4,isHole?'hole':best.d.cls); nearPulsar=best&&!isHole&&best.d.cls==='P'; }
   if(nearPulsar&&soundOn&&drone&&now>nextTick){ tick(); nextTick=now+.36; }
-  tourTick(dt);
+  tourTick(dt); atlasTick(dt);
   if(sel&&sel.kind==='hole'&&sel.feed>0&&massT++%30===0) updatePanel();
   if(sel&&sel.kind==='star'&&massT%20===0) updateHZ(sel);
   if(sel&&sel.kind==='star'){ const f=document.getElementById('pFate'), ag=document.getElementById('pAge'); if(f) f.textContent=fateText(sel); if(ag) ag.textContent=fmtYears(sel.d.age); if(feeding(sel)&&massT++%30===0) updatePanel(); }
@@ -1592,7 +1648,7 @@ function start(snap){
   const state=(snap&&Array.isArray(snap.stars))?snap:(loadSaved()||sample());
   loadState(state); desiredDist=null;
   try{ const sv=localStorage.getItem(STORE+'-sound'); if(sv==='0'){ soundOn=false; $('#sound').setAttribute('aria-pressed','false'); $('#soundT').textContent='Sound off'; $('#wave').style.display='none'; } }catch(e){}
-  renderDisc(); layout(); try{ if(localStorage.getItem(STORE+'-tour')==='1'&&!localStorage.getItem(STORE+'-lessons')) tourSave({lesson:2,step:0}); }catch(e){} setTimeout(tourStart,1200);
+  renderDisc(); layout(); barH(); try{ if(localStorage.getItem(STORE+'-tour')==='1'&&!localStorage.getItem(STORE+'-lessons')) tourSave({lesson:2,step:0}); }catch(e){} setTimeout(tourStart,1200);
   requestAnimationFrame(t=>{ last=t; frame(t); });
 }
 try{ window.claude?.hot?.snapshot?.(()=>serialize()); }catch(e){}
