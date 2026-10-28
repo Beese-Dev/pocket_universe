@@ -120,6 +120,12 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 .disc div.on{border-color:rgba(255,201,138,.5);background:rgba(255,201,138,.07)}
 .disc div.on b{color:var(--accent)}
 .disc div.on small{opacity:1}
+.guide{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--faint)}
+.guide details{border-bottom:1px solid var(--faint)}
+.guide summary{cursor:pointer;padding:11px 2px;font:600 14px/1.3 var(--f-ui);color:var(--ink);list-style:none;display:flex;justify-content:space-between;align-items:center}
+.guide summary::after{content:'+';font-family:var(--f-data);color:var(--dim);font-size:16px}
+.guide details[open] summary::after{content:'−'}
+.guide p{margin:0 0 12px;font-size:13.5px;line-height:1.5;color:var(--dim)}
 .prog{height:4px;border-radius:2px;background:var(--faint);overflow:hidden}
 .prog i{display:block;height:100%;background:var(--accent);transition:width .4s}
 
@@ -180,6 +186,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
         <button data-rate="4" aria-pressed="false" title="A million years per second">Myr/s</button>
       </div>
       <button class="chip" id="discBtn"><span>Discoveries</span><span class="n" id="discN">0/20</span></button>
+      <button class="chip" id="guideBtn"><span>Guide</span></button>
       <button class="chip" id="shareBtn"><span>Share</span></button>
       <button class="chip" id="sound" aria-pressed="true" title="Sound">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path id="wave" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
@@ -234,6 +241,14 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     <div class="prog"><i id="discBar" style="width:0"></i></div>
     <p id="discP"></p>
     <div class="disc" id="discGrid"></div>
+  </div>
+</div>
+<div class="sheet" id="guideSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="guideH">
+    <div class="ph"><h2 id="guideH">Guide</h2><button class="x" data-close aria-label="Close">×</button></div>
+    <p>Everything the universe can do, one chapter each. Or let it show you: the guided lessons walk you through it step by step.</p>
+    <div class="row"><button class="btn primary" id="guideLesson">Start the lesson: going further</button><button class="btn ghost" id="guideBasics">Replay the basics</button></div>
+    <div class="guide" id="guideList"></div>
   </div>
 </div>
 <div class="sheet" id="menuSheet" hidden>
@@ -986,7 +1001,7 @@ function launchProbe(p,target){
   const dv=Math.max(vOrb*2.2,Math.sqrt(2*133245*s.d.mass/Math.max(p.d.orbit,1))*1.15); /* comfortably above escape velocity */
   const vel=orbital.add(dir.multiplyScalar(dv));
   const pd={x:from.x,z:from.z,vx:vel.x,vz:vel.z,from:p.d.name,tk:target.kind,tn:target.d.name,t0:simT,d0:dist,ox:from.x,oz:from.z,name:`${p.d.name} probe`};
-  makeProbe(pd); chime(1320,1.6,.05,'A'); toast(`${pd.name} launched toward ${target.d.name} at ${(dv/15*4.74).toFixed(0)} km/s`); discover('probe'); changed(); }
+  makeProbe(pd); tourFlags.probe=true; chime(1320,1.6,.05,'A'); toast(`${pd.name} launched toward ${target.d.name} at ${(dv/15*4.74).toFixed(0)} km/s`); discover('probe'); changed(); }
 function stepProbe(pr,dy){ const d=pr.d; const target=findTarget(d.tk,d.tn);
   if(!target){ toast(`${d.name} lost its destination`); dropProbe(pr); return false; }
   const to=lp(targetObj(target),_ta);
@@ -1203,7 +1218,7 @@ pProbe.addEventListener('click',()=>{ if(!sel||sel.kind!=='planet') return; prob
 pCard.addEventListener('click',()=>postcard(sel));
 pNotesBtn.addEventListener('click',()=>{ notesOpen=!notesOpen; panelCompact=false; updatePanel(); });
 $('#pClose').addEventListener('click',()=>select(null));
-pName.addEventListener('input',()=>{ if(!sel) return; const v=pName.value.trim(); sel.d.name=v||sel.d.name; refreshLabel(sel); changed(); });
+pName.addEventListener('input',()=>{ if(!sel) return; tourFlags.renamed=true; const v=pName.value.trim(); sel.d.name=v||sel.d.name; refreshLabel(sel); changed(); });
 pName.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key==='Escape'){ pName.blur(); } e.stopPropagation(); });
 pName.addEventListener('blur',()=>{ if(sel) pName.value=sel.d.name; });
 addEventListener('keydown',e=>{ if(e.key==='Escape'){ if([...document.querySelectorAll('.sheet')].some(x=>!x.hidden)) closeSheets(); else if(probeFrom){ probeFrom=null; setHint(); toast('Probe stood down.'); } else if(sel) select(null); } });
@@ -1215,28 +1230,60 @@ function setHint(){ const what=seedMode==='hole'?'plant a black hole':'plant a s
 setHint();
 
 /* a first-minute tour, shown once */
-const TOUR=[
+const TOUR1=[
   {t:'Welcome to your pocket universe. Two systems are already here. Tap anywhere in empty space to plant a star of your own.',done:()=>stars.length>tour.n0},
   {t:'A new star is born with a disc of dust and gas. Tap the star again, or press Grow a planet, to condense a world out of it.',done:()=>countPlanets()>tour.p0},
   {t:'Tap a planet to select it, then open Field notes to read its weather, gravity, and whether anything lives there.',done:()=>notesOpen&&sel&&sel.kind==='planet'},
   {t:'Time runs on the dial at the top. Try Myr/s and watch stars age. The faint green band around each star is where liquid water can exist.',done:()=>rateIdx===4},
-  {t:'That is the basics. Comets, supernovas, black holes and probes are all out there; Discoveries keeps score. Enjoy your universe.',done:null},
+  {t:'That is the basics. The next lesson covers moons, black holes, probes and sharing, or open the Guide from the menu whenever you like.',done:null,next:'Next lesson'},
 ];
-const tour={i:-1,n0:0,p0:0,t:0};
+const TOUR2=[
+  {t:'Going further. Planets form only while a star still has its disc, up to eight. Select a planet and press Add a moon; moons can be selected and renamed too.',done:()=>countMoons()>tour.m0},
+  {t:'Anything can be renamed: tap the name at the top of the panel, type, and press Enter. Names appear in space and in share codes.',done:()=>tourFlags.renamed},
+  {t:'Switch Plant to Black hole and tap open space near a system. Orbits bend toward it, nearby stars begin to circle it, and anything that strays too close is torn apart.',done:()=>holes.length>tour.h0},
+  {t:'Select a star and read its Fate. Set the clock to Myr/s to watch it happen: red giants swallow their inner worlds, massive stars explode. Pause with the dial or the space bar.',done:()=>rateIdx===4&&sel&&sel.kind==='star'},
+  {t:'Select a planet and press Launch probe, then tap any destination. The probe flies a real gravity-bent path and reports back on arrival.',done:()=>tourFlags.probe},
+  {t:'Share in the menu packs your whole universe into a code a friend can paste to visit. New universe wipes the slate; it asks twice, and your discoveries survive.',done:()=>tourFlags.share},
+  {t:'You know the controls now. Comets, impacts, X-ray binaries and galaxy-scale drift happen on their own; Discoveries lists everything left to find.',done:null},
+];
+const tourFlags={renamed:false,probe:false,share:false};
+const tour={i:-1,n0:0,p0:0,m0:0,h0:0,t:0,list:TOUR1,key:'-tour'};
 function countPlanets(){ return stars.reduce((a,s)=>a+s.planets.length,0); }
-function tourShow(i){ tour.i=i; if(i>=TOUR.length){ tourEnd(); return; } $('#tourText').textContent=TOUR[i].t; $('#tourDots').textContent=`${i+1} / ${TOUR.length}`; $('#tourNext').textContent=i===TOUR.length-1?'Finish':'Next'; $('#tour').hidden=false; hint.hidden=true; }
-function tourStart(){ if(visiting) return; try{ if(localStorage.getItem(STORE+'-tour')==='1') return; }catch(e){} tour.n0=stars.length; tour.p0=countPlanets(); tourShow(0); }
-function tourEnd(){ tour.i=-1; $('#tour').hidden=true; hint.hidden=!!sel; try{ localStorage.setItem(STORE+'-tour','1'); }catch(e){} }
-function tourTick(dt){ if(tour.i<0) return; tour.t+=dt; if(tour.t<.5) return; tour.t=0; const st=TOUR[tour.i]; if(st.done&&st.done()){ tour.n0=stars.length; tour.p0=countPlanets(); const nxt=tour.i+1; tour.i=-2; setTimeout(()=>{ if(tour.i===-2) tourShow(nxt); },900); } }
-$('#tourNext').addEventListener('click',()=>{ tour.n0=stars.length; tour.p0=countPlanets(); tourShow(Math.max(tour.i,0)+1); });
+function countMoons(){ return stars.reduce((a,s)=>a+s.planets.reduce((b,p)=>b+p.moons.length,0),0); }
+function tourSnap(){ tour.n0=stars.length; tour.p0=countPlanets(); tour.m0=countMoons(); tour.h0=holes.length; }
+function tourShow(i){ const L=tour.list; tour.i=i; if(i>=L.length){ tourEnd(); return; } const st=L[i]; $('#tourText').textContent=st.t; $('#tourDots').textContent=`${i+1} / ${L.length}`;
+  $('#tourNext').textContent=st.next||(i===L.length-1?'Finish':'Next'); $('#tour').hidden=false; hint.hidden=true; }
+function tourBegin(list,key){ closeSheets(); tour.list=list; tour.key=key; tourSnap(); tourShow(0); }
+function tourStart(){ if(visiting) return; try{ if(localStorage.getItem(STORE+'-tour')==='1') return; }catch(e){} tourBegin(TOUR1,'-tour'); }
+function tourEnd(){ tour.i=-1; $('#tour').hidden=true; hint.hidden=!!sel; try{ localStorage.setItem(STORE+tour.key,'1'); }catch(e){} }
+function tourTick(dt){ if(tour.i<0) return; tour.t+=dt; if(tour.t<.5) return; tour.t=0; const st=tour.list[tour.i]; if(st.done&&st.done()){ tourSnap(); const nxt=tour.i+1; tour.i=-2; setTimeout(()=>{ if(tour.i===-2) tourShow(nxt); },900); } }
+$('#tourNext').addEventListener('click',()=>{ const st=tour.list[Math.max(tour.i,0)]; if(st&&st.next){ tourEnd(); tourBegin(TOUR2,'-tour2'); return; } tourSnap(); tourShow(Math.max(tour.i,0)+1); });
 $('#tourSkip').addEventListener('click',tourEnd);
+/* the guide: short chapters, plus a button that starts the guided lesson */
+const GUIDE=[
+  ['Planting','Tap empty space to plant a star; its class (and so its colour, mass and lifetime) is rolled for you, and about one in seven arrives as a binary pair. Each star is born with a protoplanetary disc that lasts five million years. Switch Plant to Black hole to plant one of those instead.'],
+  ['Planets and moons','While the disc lasts, Grow a planet condenses a world from it, up to eight; at kyr/s and faster they condense on their own. Type depends on distance: lava and rocky worlds close in, gas and ice far out. Planets that hug their star are tidally locked. Add up to four moons to any planet. Once the disc is gone, only a captured rogue world can join a system.'],
+  ['Naming and notes','Tap the name in the panel to rename a star, planet, moon or black hole. Field notes give day length, gravity, temperature, atmosphere, weather and life; life appears on rocky and ocean worlds inside the green habitable zone. Postcard renders the current view with the notes typeset on it.'],
+  ['Time','The dial sets how much simulated time passes per real second, from a day to a million years. At the two fastest speeds, planets whose year is shorter than a frame are drawn as a smear along their orbit. Space pauses; [ and ] step the dial on a keyboard. The T+ readout shows how much time has passed.'],
+  ['How stars live and die','A star lives ten billion years divided by its mass to the power 2.5: red dwarfs effectively forever, the Sun ten billion years, a blue giant a few million. At the end it swells into a red giant and swallows its inner planets. Under eight solar masses it then sheds a planetary nebula and leaves a white dwarf; above eight it goes supernova, vaporising close planets, flinging the rest loose as rogue worlds, and leaving a pulsar, or a black hole above twenty solar masses.'],
+  ['Black holes','A black hole bends nearby orbits and captures stars within range, which then circle it with their whole systems. A star planted inside the tidal radius is torn apart; one a little further out overflows onto the hole as an X-ray binary, shrinking until it is swallowed. Rogue planets, comets and probes that stray too close are lost. Evaporate removes a hole and frees its stars.'],
+  ['Comets and impacts','Comets fall through systems on their own. One that hits a planet raises a dust veil that lasts about a decade and can end any life there; one that hits a gas giant leaves a bruise; one in five plunges into the star. At high speeds, impacts are rolled statistically at about one major strike per planet per hundred million years.'],
+  ['Probes','Select a planet, press Launch probe, and tap any star, planet, moon or black hole as the destination. The probe leaves above escape velocity, is bent by every star on the way, corrects its course with small burns, and files a report on arrival. Probes in flight are saved with your universe.'],
+  ['Rogue worlds','Planets freed by a supernova, a dying giant or a drained star drift away on their own momentum. One that passes slowly enough through another system can be captured into a new orbit there; otherwise it fades into interstellar space.'],
+  ['Sharing and starting over','Share packs every star, planet, moon and name into a code. A friend pastes it into their own copy of the page to visit; their universe stays saved and Return home brings them back. New universe erases everything after a second confirmation; discoveries are kept. Everything is saved in this browser only.'],
+  ['Getting around','Desktop: drag to spin, scroll to zoom, right-drag or arrow keys to pan, O for Overview, Escape to deselect. Phone: one finger moves, two fingers spin, pinch to zoom; the menu can swap one-finger to spin. Selecting something makes the camera follow it; dragging away releases it, and tapping it again resumes. Zoom far enough out and the galaxy appears.'],
+];
+$('#guideList').innerHTML=GUIDE.map(([h,t])=>`<details><summary>${h}</summary><p>${t}</p></details>`).join('');
+$('#guideBtn').addEventListener('click',()=>openSheet('#guideSheet'));
+$('#guideLesson').addEventListener('click',()=>tourBegin(TOUR2,'-tour2'));
+$('#guideBasics').addEventListener('click',()=>tourBegin(TOUR1,'-tour'));
 /* mobile layout: the top bar keeps only Plant, Time and Menu; everything else moves into the menu sheet */
 let mobile=false;
 const RATE_NAMES=['Pause','day/s','mo/s','yr/s','kyr/s','Myr/s'];
 function layout(){ const m=coarse&&Math.min(innerWidth,innerHeight)<700||innerWidth<620; if(m===mobile) return; mobile=m; document.body.classList.toggle('mobile',m);
   const tools=$('.tools'), menu=$('#menuGrid'), tg=$('#timeGrid');
-  if(m){ menu.append($('#overview'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#touchSeg'),$('#reset'),$('#resetNo')); $('#touchSeg').hidden=!coarse; tg.append($('#timeSeg')); $('#timeChip').hidden=false; $('#menuChip').hidden=false; }
-  else { tools.append($('#seedSeg'),$('#timeSeg'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#touchSeg'),$('#overview'),$('#reset'),$('#resetNo'),$('#homeBtn')); $('#touchSeg').hidden=true; $('#timeChip').hidden=true; $('#menuChip').hidden=true; closeSheets(); }
+  if(m){ menu.append($('#overview'),$('#guideBtn'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#touchSeg'),$('#reset'),$('#resetNo')); $('#touchSeg').hidden=!coarse; tg.append($('#timeSeg')); $('#timeChip').hidden=false; $('#menuChip').hidden=false; }
+  else { tools.append($('#seedSeg'),$('#timeSeg'),$('#discBtn'),$('#guideBtn'),$('#shareBtn'),$('#sound'),$('#touchSeg'),$('#overview'),$('#reset'),$('#resetNo'),$('#homeBtn')); $('#touchSeg').hidden=true; $('#timeChip').hidden=true; $('#menuChip').hidden=true; closeSheets(); }
   applyCompact(); }
 $('#menuChip').addEventListener('click',()=>openSheet('#menuSheet'));
 document.querySelectorAll('[data-touch]').forEach(b=>{ b.setAttribute('aria-pressed',String((b.dataset.touch==='pan')===oneFingerPan)); b.addEventListener('click',()=>{ oneFingerPan=b.dataset.touch==='pan'; applyTouch(); setHint();
@@ -1287,7 +1334,7 @@ function closeSheets(){ document.querySelectorAll('.sheet').forEach(s=>s.hidden=
 document.querySelectorAll('.sheet').forEach(s=>{ s.addEventListener('click',e=>{ if(e.target===s) closeSheets(); }); s.querySelector('[data-close]').addEventListener('click',closeSheets); });
 $('#discBtn').addEventListener('click',()=>{ renderDisc(); openSheet('#discSheet'); });
 $('#overview').addEventListener('click',()=>{ if(mobile) closeSheets(); });
-$('#shareBtn').addEventListener('click',async()=>{ openSheet('#shareSheet'); $('#copyMsg').textContent=''; $('#visitMsg').textContent=''; $('#shareOut').value='Packing your universe…'; $('#shareOut').value=await encode(serialize()); });
+$('#shareBtn').addEventListener('click',async()=>{ tourFlags.share=true; openSheet('#shareSheet'); $('#copyMsg').textContent=''; $('#visitMsg').textContent=''; $('#shareOut').value='Packing your universe…'; $('#shareOut').value=await encode(serialize()); });
 $('#copyBtn').addEventListener('click',async()=>{ const ta=$('#shareOut'); try{ await navigator.clipboard.writeText(ta.value); $('#copyMsg').textContent='Copied.'; }
   catch(e){ ta.focus(); ta.select(); $('#copyMsg').textContent='Select the code and copy it.'; } });
 $('#visitBtn').addEventListener('click',async()=>{ const code=$('#shareIn').value.trim(); const msg=$('#visitMsg'); if(!code){ msg.textContent='Paste a code first.'; return; }
