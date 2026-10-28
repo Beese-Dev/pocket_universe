@@ -980,7 +980,7 @@ function stepComet(c,dy){
 }
 
 /* ---------- probes: a real trajectory under every star's gravity ---------- */
-let probes=[], probeFrom=null;
+let probes=[], probeFrom=null; const _rel=new THREE.Vector3(), _tv=new THREE.Vector3();
 function targetRadius(o){ return o.kind==='star'?o.T.r*(o.giantF||1)*2.2:o.kind==='hole'?o.r*3:o.kind==='moon'?o.d.size*2.5+.4:o.d.size*2.2+.6; }
 function targetObj(o){ return o.kind==='star'||o.kind==='hole'?o.group:o.kind==='moon'?o.mesh:o.holder; }
 function findTarget(kind,name){ if(kind==='star') return stars.find(s=>s.d.name===name); if(kind==='hole') return holes.find(h=>h.d.name===name);
@@ -994,25 +994,31 @@ function makeProbe(pd){
   world.add(head,trail); const pr={d:pd,head,trail,P,N,filled:0,pos:new THREE.Vector3(pd.x,0,pd.z),vel:new THREE.Vector3(pd.vx,0,pd.vz),g};
   head.position.copy(pr.pos); probes.push(pr); return pr; }
 function dropProbe(pr){ world.remove(pr.head,pr.trail); pr.g.dispose(); probes=probes.filter(x=>x!==pr); }
-function launchProbe(p,target){
-  const from=lp(p.holder,new THREE.Vector3()), to=lp(targetObj(target),new THREE.Vector3());
+function launchProbe(o,target){
+  const p=o.kind==='moon'?o.planet:o;
+  const from=lp(targetObj(o),new THREE.Vector3()), to=lp(targetObj(target),new THREE.Vector3());
   const dir=to.clone().sub(from); const dist=dir.length(); dir.normalize();
   const s=p.star; const vOrb=omega(s,p.d.orbit)*p.d.orbit; const a=p.angle; const orbital=new THREE.Vector3(-Math.sin(a),0,Math.cos(a)).multiplyScalar(vOrb);
-  const dv=Math.max(vOrb*2.2,Math.sqrt(2*133245*s.d.mass/Math.max(p.d.orbit,1))*1.15); /* comfortably above escape velocity */
+  /* a moon is a cheaper launch site: no deep planetary gravity well to climb out of */
+  const dv=Math.max(vOrb*(o.kind==='moon'?2.0:2.2),Math.sqrt(2*133245*s.d.mass/Math.max(p.d.orbit,1))*(o.kind==='moon'?1.05:1.15));
   const vel=orbital.add(dir.multiplyScalar(dv));
-  const pd={x:from.x,z:from.z,vx:vel.x,vz:vel.z,from:p.d.name,tk:target.kind,tn:target.d.name,t0:simT,d0:dist,ox:from.x,oz:from.z,name:`${p.d.name} probe`};
+  const pd={x:from.x,z:from.z,vx:vel.x,vz:vel.z,from:o.d.name,tk:target.kind,tn:target.d.name,t0:simT,d0:dist,ox:from.x,oz:from.z,name:`${o.d.name} probe`};
   makeProbe(pd); tourFlags.probe=true; chime(1320,1.6,.05,'A'); toast(`${pd.name} launched toward ${target.d.name} at ${(dv/15*4.74).toFixed(0)} km/s`); discover('probe'); changed(); }
 function stepProbe(pr,dy){ const d=pr.d; const target=findTarget(d.tk,d.tn);
   if(!target){ toast(`${d.name} lost its destination`); dropProbe(pr); return false; }
   const to=lp(targetObj(target),_ta);
-  const steps=Math.min(40,Math.ceil(dy*40)); const h=dy/steps;
+  if(pr.lastTo) _tv.copy(to).sub(pr.lastTo).divideScalar(Math.max(dy,1e-9)); else { _tv.set(0,0,0); pr.lastTo=new THREE.Vector3(); } pr.lastTo.copy(to); if(_tv.length()>2000) _tv.set(0,0,0); /* the destination's own velocity */
+  const spd0=pr.vel.length(); if(spd0*dy>pr.pos.distanceTo(to)*3+50){ probeArrives(pr,target); return false; } /* at high speeds the whole trip fits in one frame */
+  const steps=Math.min(600,Math.max(1,Math.ceil(spd0*dy/.35))); const h=dy/steps; /* never move more than a third of a unit per step, so small targets cannot be skipped */
   for(let i=0;i<steps;i++){
     _tb.set(0,0,0);
     for(const s of stars){ const dx=s.d.x-pr.pos.x, dz=s.d.z-pr.pos.z, d2=dx*dx+dz*dz+2; const a=133245*s.d.mass/d2/Math.sqrt(d2); _tb.x+=dx*a; _tb.z+=dz*a; }
     for(const bh of holes){ const dx=bh.d.x-pr.pos.x, dz=bh.d.z-pr.pos.z, d2=dx*dx+dz*dz+2; const a=133245*bh.d.mass/d2/Math.sqrt(d2); _tb.x+=dx*a; _tb.z+=dz*a; }
     pr.vel.addScaledVector(_tb,h);
     /* course corrections: small thruster burns keep the nose on the destination without changing speed much */
-    const sp=pr.vel.length(); _ta2.copy(to).sub(pr.pos).normalize().multiplyScalar(sp); pr.vel.lerp(_ta2,clamp(h*6)).setLength(sp);
+    /* guidance works in the target's frame: match its motion, then close the gap, braking on approach */
+    _rel.copy(pr.vel).sub(_tv); let sp=_rel.length(); const dist=pr.pos.distanceTo(to); const cap=Math.max(dist*10,30); if(sp>cap) sp=Math.max(cap,sp-sp*clamp(h*25));
+    _ta2.copy(to).sub(pr.pos).normalize().multiplyScalar(sp); _rel.lerp(_ta2,clamp(h*30)).setLength(sp); pr.vel.copy(_tv).add(_rel);
     pr.pos.addScaledVector(pr.vel,h);
     if(pr.pos.distanceTo(to)<targetRadius(target)){ probeArrives(pr,target); return false; } }
   d.x=pr.pos.x; d.z=pr.pos.z; d.vx=pr.vel.x; d.vz=pr.vel.z; pr.head.position.copy(pr.pos);
@@ -1180,7 +1186,7 @@ function updatePanel(){ applyCompact();
   const sw=$('#pSw');
   if(document.activeElement!==pName) pName.value=sel.d.name;
   pNotesBtn.hidden=sel.kind!=='planet'; pNotes.hidden=!(sel.kind==='planet'&&notesOpen); pNotesBtn.setAttribute('aria-expanded',String(notesOpen));
-  pProbe.hidden=!(sel.kind==='planet'&&!sel.rogue&&!sel.smeared); pCard.hidden=!(sel.kind==='planet'||sel.kind==='moon');
+  pProbe.hidden=!((sel.kind==='planet'&&!sel.rogue&&!sel.smeared)||(sel.kind==='moon'&&!sel.planet.smeared)); pCard.hidden=!(sel.kind==='planet'||sel.kind==='moon');
   if(sel.kind==='star'){ const s=sel,d=s.d;
     sw.style.color=s.T.col; $('#pKind').textContent=`Star · ${d.catalog}`;
     const fate=`<div><dt>Fate</dt><dd id="pFate">${fateText(s)}</dd></div>`+(hasDisc(s)?stat('Disc',`dissipates in ${fmtYears(DISC_LIFE-d.age)}`):'');
@@ -1214,7 +1220,7 @@ function updatePanel(){ applyCompact();
 function flyDown(p){ if(p.smeared){ toast('Slow time down to visit a planet'); return; } following=true; desiredDist=p.d.size*(p.d.rings?3.2:2.3); toast(`Descending toward ${p.d.name}. Drag to look around.`); }
 pPrimary.addEventListener('click',()=>{ if(!sel) return; following=true; if(sel.kind==='star') growPlanet(sel); else if(sel.kind==='hole') desiredDist=sel.r*4.5; else if(sel.kind==='moon') desiredDist=sel.d.size*2.4; else if(sel.rogue) flyDown(sel); else addMoon(sel); });
 pSecondary.addEventListener('click',()=>{ if(!sel) return; following=true; if(sel.kind==='star') desiredDist=Math.max(42,outerR(sel)*2.6); else if(sel.kind==='hole') removeHole(sel); else if(sel.kind==='moon') select(sel.planet); else if(sel.rogue) select(sel.star); else flyDown(sel); });
-pProbe.addEventListener('click',()=>{ if(!sel||sel.kind!=='planet') return; probeFrom=sel; toast(`Probe armed on ${sel.d.name}. Tap a destination: any star, planet, moon or black hole.`); hint.hidden=false; hint.innerHTML='<span><b>Tap a destination</b> for the probe · tap empty space to cancel</span>'; });
+pProbe.addEventListener('click',()=>{ if(!sel||(sel.kind!=='planet'&&sel.kind!=='moon')) return; probeFrom=sel; toast(`Probe armed on ${sel.d.name}. Tap a destination: any star, planet, moon or black hole.`); hint.hidden=false; hint.innerHTML='<span><b>Tap a destination</b> for the probe · tap empty space to cancel</span>'; });
 pCard.addEventListener('click',()=>postcard(sel));
 pNotesBtn.addEventListener('click',()=>{ notesOpen=!notesOpen; panelCompact=false; updatePanel(); });
 $('#pClose').addEventListener('click',()=>select(null));
@@ -1242,7 +1248,7 @@ const TOUR2=[
   {t:'Anything can be renamed: tap the name at the top of the panel, type, and press Enter. Names appear in space and in share codes.',done:()=>tourFlags.renamed},
   {t:'Switch Plant to Black hole and tap open space near a system. Orbits bend toward it, nearby stars begin to circle it, and anything that strays too close is torn apart.',done:()=>holes.length>tour.h0},
   {t:'Select a star and read its Fate. Set the clock to Myr/s to watch it happen: red giants swallow their inner worlds, massive stars explode. Pause with the dial or the space bar.',done:()=>rateIdx===4&&sel&&sel.kind==='star'},
-  {t:'Select a planet and press Launch probe, then tap any destination. The probe flies a real gravity-bent path and reports back on arrival.',done:()=>tourFlags.probe},
+  {t:'Select a planet or a moon and press Launch probe, then tap any destination. The probe flies a real gravity-bent path and reports back on arrival.',done:()=>tourFlags.probe},
   {t:'Share in the menu packs your whole universe into a code a friend can paste to visit. New universe wipes the slate; it asks twice, and your discoveries survive.',done:()=>tourFlags.share},
   {t:'You know the controls now. Comets, impacts, X-ray binaries and galaxy-scale drift happen on their own; Discoveries lists everything left to find.',done:null},
 ];
@@ -1268,7 +1274,7 @@ const GUIDE=[
   ['How stars live and die','A star lives ten billion years divided by its mass to the power 2.5: red dwarfs effectively forever, the Sun ten billion years, a blue giant a few million. At the end it swells into a red giant and swallows its inner planets. Under eight solar masses it then sheds a planetary nebula and leaves a white dwarf; above eight it goes supernova, vaporising close planets, flinging the rest loose as rogue worlds, and leaving a pulsar, or a black hole above twenty solar masses.'],
   ['Black holes','A black hole bends nearby orbits and captures stars within range, which then circle it with their whole systems. A star planted inside the tidal radius is torn apart; one a little further out overflows onto the hole as an X-ray binary, shrinking until it is swallowed. Rogue planets, comets and probes that stray too close are lost. Evaporate removes a hole and frees its stars.'],
   ['Comets and impacts','Comets fall through systems on their own. One that hits a planet raises a dust veil that lasts about a decade and can end any life there; one that hits a gas giant leaves a bruise; one in five plunges into the star. At high speeds, impacts are rolled statistically at about one major strike per planet per hundred million years.'],
-  ['Probes','Select a planet, press Launch probe, and tap any star, planet, moon or black hole as the destination. The probe leaves above escape velocity, is bent by every star on the way, corrects its course with small burns, and files a report on arrival. Probes in flight are saved with your universe.'],
+  ['Probes','Select a planet or moon, press Launch probe, and tap any star, planet, moon or black hole as the destination. The probe leaves above escape velocity, is bent by every star on the way, corrects its course with small burns, and files a report on arrival. Probes in flight are saved with your universe.'],
   ['Rogue worlds','Planets freed by a supernova, a dying giant or a drained star drift away on their own momentum. One that passes slowly enough through another system can be captured into a new orbit there; otherwise it fades into interstellar space.'],
   ['Sharing and starting over','Share packs every star, planet, moon and name into a code. A friend pastes it into their own copy of the page to visit; their universe stays saved and Return home brings them back. New universe erases everything after a second confirmation; discoveries are kept. Everything is saved in this browser only.'],
   ['Getting around','Desktop: drag to spin, scroll to zoom, right-drag or arrow keys to pan, O for Overview, Escape to deselect. Phone: one finger moves, two fingers spin, pinch to zoom; the menu can swap one-finger to spin. Selecting something makes the camera follow it; dragging away releases it, and tapping it again resumes. Zoom far enough out and the galaxy appears.'],
