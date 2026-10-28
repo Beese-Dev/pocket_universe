@@ -123,14 +123,31 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 .prog{height:4px;border-radius:2px;background:var(--faint);overflow:hidden}
 .prog i{display:block;height:100%;background:var(--accent);transition:width .4s}
 
+.menuGrid{display:flex;flex-direction:column;gap:8px}
+.menuGrid .chip .t{display:inline!important}
+.menuGrid .chip,.menuGrid .seg{width:100%;box-sizing:border-box;justify-content:flex-start;font-size:14px;padding:12px 14px}
+.menuGrid .seg{display:flex;gap:4px} .menuGrid .seg button{flex:1;padding:11px 8px;font-size:13px;text-align:center}
+.menuGrid .seg .lead{display:inline;align-self:center;padding:0 8px 0 4px}
+#timeGrid .seg{flex-direction:column} #timeGrid .seg button{text-align:left;padding:12px 14px;font-size:14px}
+#pMore{display:none}
 @media (max-width:620px){
-  .brand h1{font-size:24px}
-  #panel{width:100%}
-  #pName{font-size:28px}
-  .seg button,.chip{padding:8px 9px}
+  .brand h1{font-size:22px}
+  .brand p{font-size:9.5px}
+  #panel{width:100%;padding:12px 14px 14px;max-height:min(70vh,560px)}
+  #pName{font-size:26px}
+  .seg button,.chip{padding:9px 10px;font-size:12.5px}
   .chip .t{display:none}
   .seg .lead{display:none}
+  #hint{font-size:11.5px;gap:4px 12px}
+  #toast{top:auto;bottom:max(78px,calc(env(safe-area-inset-bottom,0px) + 74px));transform:translate(-50%,6px);font-size:12.5px}
+  #toast.on{transform:translate(-50%,0)}
+  #tour{bottom:auto;top:max(134px,calc(env(safe-area-inset-top,0px) + 128px))}
+  /* the panel is a bottom sheet: compact until you ask for more */
+  #pMore{display:inline-flex;background:transparent;border:1px solid var(--faint);color:var(--dim);border-radius:999px;font:500 12px/1 var(--f-ui);padding:8px 11px;cursor:pointer;align-items:center;gap:4px}
+  #panel.compact #pStats,#panel.compact #pNotes,#panel.compact #pNotesBtn,#panel.compact #pProbe,#panel.compact #pCard,#panel.compact .namefield small{display:none}
+  #panel.compact #pName{font-size:22px}
 }
+.mobile .brand h1{font-size:22px}
 @media (prefers-reduced-motion:reduce){ .lbl,#toast,.prog i{transition:none} }
 </style>
 
@@ -146,12 +163,14 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <p id="clock">T + 0 d</p>
     </div>
     <div class="tools">
-      <div class="seg" role="group" aria-label="What to plant">
+      <button class="chip" id="timeChip" hidden aria-haspopup="true" aria-expanded="false"><span class="n">TIME</span><span id="timeChipT">mo/s</span></button>
+      <button class="chip" id="menuChip" hidden aria-haspopup="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></button>
+      <div class="seg" id="seedSeg" role="group" aria-label="What to plant">
         <span class="lead">Plant</span>
         <button id="seedStar" data-seed="star" aria-pressed="true">Star</button>
         <button id="seedHole" data-seed="hole" aria-pressed="false">Black hole</button>
       </div>
-      <div class="seg" role="group" aria-label="Time speed">
+      <div class="seg" id="timeSeg" role="group" aria-label="Time speed">
         <span class="lead">Time</span>
         <button data-rate="-1" aria-pressed="false" title="Pause">Pause</button>
         <button data-rate="0" aria-pressed="false" title="One day per second">day/s</button>
@@ -176,7 +195,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     <section id="panel" hidden aria-live="polite">
       <div class="ph">
         <span class="eyebrow"><span class="sw" id="pSw"></span><span id="pKind"></span></span>
-        <button class="x" id="pClose" aria-label="Close panel">×</button>
+        <span style="display:flex;gap:6px;align-items:center"><button id="pMore" aria-expanded="false">More</button><button class="x" id="pClose" aria-label="Close panel">×</button></span>
       </div>
       <label class="namefield">
         <input id="pName" maxlength="28" spellcheck="false" autocomplete="off" aria-label="Name">
@@ -210,6 +229,20 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     <div class="prog"><i id="discBar" style="width:0"></i></div>
     <p id="discP"></p>
     <div class="disc" id="discGrid"></div>
+  </div>
+</div>
+<div class="sheet" id="menuSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="menuH">
+    <div class="ph"><h2 id="menuH">Menu</h2><button class="x" data-close aria-label="Close">×</button></div>
+    <div class="menuGrid" id="menuGrid"></div>
+    <p>Two fingers drag to pan, pinch to zoom, one finger to spin.</p>
+  </div>
+</div>
+<div class="sheet" id="timeSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="timeH" style="width:min(320px,100%)">
+    <div class="ph"><h2 id="timeH">Time</h2><button class="x" data-close aria-label="Close">×</button></div>
+    <p>How much simulated time passes for each real second.</p>
+    <div class="menuGrid" id="timeGrid"></div>
   </div>
 </div>
 <div class="sheet" id="repSheet" hidden>
@@ -269,7 +302,7 @@ const canvas=$('#c');
 let renderer;
 try{ renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',logarithmicDepthBuffer:true}); }
 catch(e){ document.body.insertAdjacentHTML('beforeend','<div id="fail">Your browser could not start 3D graphics. Try a recent Chrome, Safari or Firefox.</div>'); return; }
-renderer.setPixelRatio(Math.min(devicePixelRatio,coarse?1.5:2));
+let dpr=Math.min(devicePixelRatio,coarse?1.35:2); const DPR_MAX=dpr; renderer.setPixelRatio(dpr);
 renderer.setClearColor(0x05040c,1);
 const scene=new THREE.Scene();
 /* The universe lives inside a slowly turning galaxy. `world` holds everything the player makes, in universe coordinates;
@@ -289,9 +322,13 @@ controls.minDistance=3; controls.maxDistance=60000; controls.maxPolarAngle=Math.
 controls.rotateSpeed=.7; controls.zoomSpeed=.9;
 const composer=new THREE.EffectComposer(renderer);
 composer.addPass(new THREE.RenderPass(scene,camera));
-const bloom=new THREE.UnrealBloomPass(new THREE.Vector2(256,256),0.95,.5,.92);
+const bloom=new THREE.UnrealBloomPass(new THREE.Vector2(coarse?192:256,coarse?192:256),0.95,.5,.92);
 composer.addPass(bloom);
-function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h); composer.setPixelRatio&&composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function resize(){ const w=innerWidth,h=innerHeight; renderer.setPixelRatio(dpr); renderer.setSize(w,h); composer.setPixelRatio&&composer.setPixelRatio(dpr); composer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+/* adaptive resolution: if frames run slow for a few seconds, drop the pixel ratio a notch; creep back up when there is headroom */
+let perfAcc=0, perfN=0, perfT=0;
+function perfTick(dt){ perfAcc+=dt; perfN++; perfT+=dt; if(perfT<3) return; const avg=perfAcc/perfN; perfAcc=0; perfN=0; perfT=0;
+  if(avg>.034&&dpr>.75){ dpr=Math.max(.75,dpr-.2); resize(); } else if(avg<.019&&dpr<DPR_MAX){ dpr=Math.min(DPR_MAX,dpr+.1); resize(); } }
 addEventListener('resize',resize); resize();
 
 /* ---------- shaders ---------- */
@@ -470,17 +507,17 @@ function starfield(n,r0,r1,size){ const P=new Float32Array(n*3),C=new Float32Arr
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(P,3)); g.setAttribute('color',new THREE.BufferAttribute(C,3));
   const pts=new THREE.Points(g,new THREE.PointsMaterial({size,map:dotTex,vertexColors:true,transparent:true,depthWrite:false,sizeAttenuation:false,blending:THREE.AdditiveBlending}));
   pts.renderOrder=-1; return pts; }
-sky.add(starfield(5000,1200,1600,1.7)); sky.add(starfield(500,1200,1600,3.4));
+sky.add(starfield(coarse?2600:5000,1200,1600,1.7)); sky.add(starfield(coarse?260:500,1200,1600,3.4));
 
 /* ---------- the galaxy ---------- */
-function buildGalaxy(){ const N=26000, P=new Float32Array(N*3), C=new Float32Array(N*3); let i=0;
+function buildGalaxy(){ const N=coarse?15000:26000, P=new Float32Array(N*3), C=new Float32Array(N*3); let i=0;
   const put=(x,y,z,r,g,b)=>{ P[i*3]=x; P[i*3+1]=y; P[i*3+2]=z; C[i*3]=r; C[i*3+1]=g; C[i*3+2]=b; i++; };
   const phase=-7.7; /* puts one arm through the player's corner of the galaxy */
-  while(i<16000){ const th=rand(0,3.6*Math.PI), r=600*Math.exp(.35*th); if(r>15000) continue; const arm=Math.random()<.5?0:Math.PI;
+  while(i<N*.62){ const th=rand(0,3.6*Math.PI), r=600*Math.exp(.35*th); if(r>15000) continue; const arm=Math.random()<.5?0:Math.PI;
     const sc=r*.11*(Math.random()+Math.random()-1), ang=th+phase+arm; const rr=r+sc;
     const hot=Math.random()<.08; const b=rand(.35,1)*(hot?1.2:1);
     put(rr*Math.cos(ang)+rand(-200,200),rand(-1,1)*rand(0,60)*(1+r/5000),rr*Math.sin(ang)+rand(-200,200),hot?b*1.1:b*.82,hot?b*.55:b*.86,hot?b*.6:b); }
-  while(i<20000){ const r=Math.abs(rand(-1,1)+rand(-1,1))*900, ang=rand(0,TAU), b=rand(.5,1.2); put(r*Math.cos(ang),rand(-1,1)*rand(0,250),r*Math.sin(ang),b,b*.85,b*.6); }
+  while(i<N*.77){ const r=Math.abs(rand(-1,1)+rand(-1,1))*900, ang=rand(0,TAU), b=rand(.5,1.2); put(r*Math.cos(ang),rand(-1,1)*rand(0,250),r*Math.sin(ang),b,b*.85,b*.6); }
   while(i<N){ const r=Math.sqrt(Math.random())*14000, ang=rand(0,TAU), b=rand(.15,.5); put(r*Math.cos(ang),rand(-1,1)*rand(0,120),r*Math.sin(ang),b*.9,b*.9,b); }
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(P,3)); g.setAttribute('color',new THREE.BufferAttribute(C,3));
   const mat=new THREE.PointsMaterial({size:70,map:dotTex,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0});
@@ -548,8 +585,9 @@ function renderDisc(){ const n=DISC.filter(d=>found[d[0]]).length; $('#discN').t
   $('#discGrid').innerHTML=DISC.map(([k,name,hint])=>`<div class="${found[k]?'on':''}"><b>${found[k]?name:'?'}</b><small>${hint}</small></div>`).join(''); }
 
 /* ---------- world ---------- */
-const SPHERE=new THREE.SphereGeometry(1,96,64);
+const SPHERE=new THREE.SphereGeometry(1,coarse?64:96,coarse?44:64);
 const HIT=new THREE.SphereGeometry(1,12,8);
+const HITK=coarse?1.6:1; /* thumbs need bigger targets than cursors */
 const hitMat=new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false,transparent:true,opacity:0});
 const labelsEl=$('#labels');
 let stars=[], holes=[], comets=[], rogues=[], remnants=[], hitTargets=[], sel=null, catalogN=1, now=0, desiredDist=null, seedMode='star', visiting=false, homeState=null;
@@ -586,7 +624,7 @@ function buildBody(s){
   } else { s.pair=null; s.suns.push(buildSun(d.cls,d.seed,body,0)); }
   s.T=STAR_TYPES[d.cls]; s.col=s.suns[0].col; s.lightCol.copy(s.col).lerp(new THREE.Color(1,1,1),.55);
   const hr=d.binary&&d.cls!=='P'&&d.cls!=='D'?d.binary.sep/2+s.T.r*1.4:Math.max(s.T.r*1.6,2.2);
-  s.hit.scale.setScalar(hr);
+  s.hit.scale.setScalar(hr*HITK);
 }
 function makeStar(d,animate){
   const group=new THREE.Group(); group.position.set(d.x,0,d.z); world.add(group);
@@ -644,7 +682,7 @@ function makePlanet(s,pd,animate){
     ring=new THREE.Mesh(new THREE.RingGeometry(rin,rout,128,1),new THREE.ShaderMaterial({uniforms:{uA:{value:new THREE.Color(pd.colors[1])},uB:{value:new THREE.Color(pd.colors[0])},
       uIn:{value:rin},uOut:{value:rout},uSeed:{value:pd.seed},uGrow:growU},vertexShader:RING_VS,fragmentShader:RING_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide}));
     ring.rotation.x=-Math.PI/2; tilt.add(ring); }
-  const hit=new THREE.Mesh(HIT,hitMat); hit.scale.setScalar(Math.max(pd.size*1.8,1.6)); holder.add(hit);
+  const hit=new THREE.Mesh(HIT,hitMat); hit.scale.setScalar(Math.max(pd.size*1.8,1.6)*HITK); holder.add(hit);
   const og=new THREE.BufferGeometry(); og.setAttribute('position',new THREE.BufferAttribute(new Float32Array(161*3),3));
   const orbitLine=new THREE.Line(og,new THREE.LineBasicMaterial({color:s.col,transparent:true,opacity:.17,depthWrite:false})); s.group.add(orbitLine);
   const p={kind:'planet',d:pd,star:s,angle:pd.angle,holder,grow,tilt,mesh,mat,atmo,ring,hit,orbitLine,growU,moons:[],born:animate?now:-99};
@@ -660,7 +698,7 @@ function makeMoon(p,md,animate){
   const mesh=new THREE.Mesh(SPHERE,planetMaterial(md.colors||['#3b3a3f','#77757d','#bdb9c2'],'rocky',md.seed,false,p.star.group.position,p.star.lightCol,growU));
   mesh.position.x=md.orbit; mesh.scale.setScalar(md.size); pivot.add(mesh);
   if(!md.name) md.name=`${p.d.name} ${ROMAN[p.moons.length]||p.moons.length+1}`;
-  const hit=new THREE.Mesh(HIT,hitMat); hit.scale.setScalar(Math.max(md.size*2.2,.5)); hit.position.x=md.orbit; pivot.add(hit);
+  const hit=new THREE.Mesh(HIT,hitMat); hit.scale.setScalar(Math.max(md.size*2.2,.5)*HITK); hit.position.x=md.orbit; pivot.add(hit);
   const m={kind:'moon',d:md,planet:p,pivot,mesh,hit,growU,born:animate?now:-99}; hit.userData.ref=m; hitTargets.push(hit); makeLabel(m); p.moons.push(m); return m;
 }
 function makeHole(d,animate){
@@ -674,7 +712,7 @@ function makeHole(d,animate){
   const jetMat=new THREE.MeshBasicMaterial({color:0x9fd0ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
   const jets=new THREE.Group(); jets.rotation.copy(disk.rotation); jets.rotation.x+=Math.PI/2; group.add(jets);
   [1,-1].forEach(sg=>{ const cone=new THREE.Mesh(new THREE.ConeGeometry(r*.45,r*16,20,1,true),jetMat); cone.position.y=sg*r*8; cone.rotation.x=sg>0?0:Math.PI; jets.add(cone); });
-  const hit=new THREE.Mesh(HIT,hitMat); hit.scale.setScalar(Math.max(r*2.2,3)); group.add(hit);
+  const hit=new THREE.Mesh(HIT,hitMat); hit.scale.setScalar(Math.max(r*2.2,3)*HITK); group.add(hit);
   const h={kind:'hole',d,group,core,disk,arc,ring,hit,jets,jetMat,r,r0:r,feed:0,born:animate?now:-99};
   hit.userData.ref=h; hitTargets.push(hit); makeLabel(h); holes.push(h); return h;
 }
@@ -1097,6 +1135,7 @@ function minDistFor(o){ return !o?3:o.kind==='star'?o.T.r*1.6*(o.giantF||1):o.ki
 function moonPeriodDays(m){ return moonPeriodYears(m.planet,m.d)*365.25; }
 function select(o,zoom=true){
   if(sel&&sel.labelEl) sel.labelEl.classList.remove('sel');
+  if(o&&o!==sel) panelCompact=true;
   sel=o; marker.visible=!!o; controls.minDistance=minDistFor(o);
   if(o){ o.labelEl.classList.add('sel');
     if(zoom) desiredDist=o.kind==='star'?Math.max(42,outerR(o)*2.5):o.kind==='hole'?o.r*14:o.kind==='moon'?o.d.size*9+1:(o.d.rings?o.d.size*12:o.d.size*10)+7; }
@@ -1108,7 +1147,10 @@ function fateText(s){ const d=s.d; if(feeding(s)){ const y=(d.mass-.08)/transfer
   const massive=primaryMass(s)>=8, G=L*.1;
   if(d.age<L){ const y=L-d.age; return `${massive?'red supergiant':'red giant'} in ${fmtYears(y)}${realAt(y)}`; }
   const y=L+G-d.age; return `${massive?(primaryMass(s)>20?'collapse to a black hole':'supernova'):'white dwarf'} in ${fmtYears(y)}${realAt(y)}`; }
-function updatePanel(){
+let panelCompact=true;
+$('#pMore').addEventListener('click',()=>{ panelCompact=!panelCompact; applyCompact(); });
+function applyCompact(){ const on=mobile&&panelCompact; panel.classList.toggle('compact',on); $('#pMore').textContent=on?'More':'Less'; $('#pMore').setAttribute('aria-expanded',String(!on)); }
+function updatePanel(){ applyCompact();
   hint.hidden=!!sel||tour.i!==-1; panel.hidden=!sel; if(!sel) return;
   const sw=$('#pSw');
   if(document.activeElement!==pName) pName.value=sel.d.name;
@@ -1149,7 +1191,7 @@ pPrimary.addEventListener('click',()=>{ if(!sel) return; if(sel.kind==='star') g
 pSecondary.addEventListener('click',()=>{ if(!sel) return; if(sel.kind==='star') desiredDist=Math.max(42,outerR(sel)*2.6); else if(sel.kind==='hole') removeHole(sel); else if(sel.kind==='moon') select(sel.planet); else if(sel.rogue) select(sel.star); else flyDown(sel); });
 pProbe.addEventListener('click',()=>{ if(!sel||sel.kind!=='planet') return; probeFrom=sel; toast(`Probe armed on ${sel.d.name}. Tap a destination: any star, planet, moon or black hole.`); hint.hidden=false; hint.innerHTML='<span><b>Tap a destination</b> for the probe · tap empty space to cancel</span>'; });
 pCard.addEventListener('click',()=>postcard(sel));
-pNotesBtn.addEventListener('click',()=>{ notesOpen=!notesOpen; updatePanel(); });
+pNotesBtn.addEventListener('click',()=>{ notesOpen=!notesOpen; panelCompact=false; updatePanel(); });
 $('#pClose').addEventListener('click',()=>select(null));
 pName.addEventListener('input',()=>{ if(!sel) return; const v=pName.value.trim(); sel.d.name=v||sel.d.name; refreshLabel(sel); changed(); });
 pName.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key==='Escape'){ pName.blur(); } e.stopPropagation(); });
@@ -1158,7 +1200,7 @@ addEventListener('keydown',e=>{ if(e.key==='Escape'){ if([...document.querySelec
 
 function setHint(){ const what=seedMode==='hole'?'plant a black hole':'plant a star';
   hint.innerHTML=(coarse
-    ?[`<span><b>Tap empty space</b> to ${what}</span>`,'<span><b>Tap a star twice</b> to grow a planet</span>','<span>Drag to spin · pinch to zoom</span>']
+    ?[`<span><b>Tap empty space</b> to ${what}</span>`,'<span><b>Tap a star twice</b> to grow a planet</span>','<span>One finger spins · two fingers pan · pinch to zoom</span>']
     :[`<span><b>Click empty space</b> to ${what}</span>`,'<span><b>Click a star twice</b> to grow a planet</span>','<span>Drag to spin · scroll to zoom · right-drag or arrow keys to pan</span>']).join(''); }
 setHint();
 
@@ -1178,10 +1220,21 @@ function tourEnd(){ tour.i=-1; $('#tour').hidden=true; hint.hidden=!!sel; try{ l
 function tourTick(dt){ if(tour.i<0) return; tour.t+=dt; if(tour.t<.5) return; tour.t=0; const st=TOUR[tour.i]; if(st.done&&st.done()){ tour.n0=stars.length; tour.p0=countPlanets(); const nxt=tour.i+1; tour.i=-2; setTimeout(()=>{ if(tour.i===-2) tourShow(nxt); },900); } }
 $('#tourNext').addEventListener('click',()=>{ tour.n0=stars.length; tour.p0=countPlanets(); tourShow(Math.max(tour.i,0)+1); });
 $('#tourSkip').addEventListener('click',tourEnd);
+/* mobile layout: the top bar keeps only Plant, Time and Menu; everything else moves into the menu sheet */
+let mobile=false;
+const RATE_NAMES=['Pause','day/s','mo/s','yr/s','kyr/s','Myr/s'];
+function layout(){ const m=coarse&&Math.min(innerWidth,innerHeight)<700||innerWidth<620; if(m===mobile) return; mobile=m; document.body.classList.toggle('mobile',m);
+  const tools=$('.tools'), menu=$('#menuGrid'), tg=$('#timeGrid');
+  if(m){ menu.append($('#overview'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#reset'),$('#resetNo')); tg.append($('#timeSeg')); $('#timeChip').hidden=false; $('#menuChip').hidden=false; }
+  else { tools.append($('#seedSeg'),$('#timeSeg'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#overview'),$('#reset'),$('#resetNo'),$('#homeBtn')); $('#timeChip').hidden=true; $('#menuChip').hidden=true; closeSheets(); }
+  applyCompact(); }
+$('#menuChip').addEventListener('click',()=>openSheet('#menuSheet'));
+$('#timeChip').addEventListener('click',()=>openSheet('#timeSheet'));
+addEventListener('resize',layout);
 let toastT=0; function toast(msg,disc){ const t=$('#toast'); t.textContent=msg; t.classList.toggle('disc',!!disc); t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),disc?3200:2600); }
 
 /* ---------- top bar ---------- */
-function setRate(i){ rateIdx=i; ypr=i<0?0:RATES[i].y; document.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.rate===i)); if(sel) updatePanel(); }
+function setRate(i){ rateIdx=i; ypr=i<0?0:RATES[i].y; document.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.rate===i)); $('#timeChipT').textContent=RATE_NAMES[i+1]; if(mobile&&!$('#timeSheet').hidden) closeSheets(); if(sel) updatePanel(); }
 document.querySelectorAll('[data-rate]').forEach(b=>b.addEventListener('click',()=>setRate(+b.dataset.rate)));
 document.querySelectorAll('[data-seed]').forEach(b=>b.addEventListener('click',()=>{ seedMode=b.dataset.seed; setHint();
   document.querySelectorAll('[data-seed]').forEach(x=>x.setAttribute('aria-pressed',x===b)); }));
@@ -1221,6 +1274,7 @@ function openSheet(id){ closeSheets(); $(id).hidden=false; }
 function closeSheets(){ document.querySelectorAll('.sheet').forEach(s=>s.hidden=true); }
 document.querySelectorAll('.sheet').forEach(s=>{ s.addEventListener('click',e=>{ if(e.target===s) closeSheets(); }); s.querySelector('[data-close]').addEventListener('click',closeSheets); });
 $('#discBtn').addEventListener('click',()=>{ renderDisc(); openSheet('#discSheet'); });
+$('#overview').addEventListener('click',()=>{ if(mobile) closeSheets(); });
 $('#shareBtn').addEventListener('click',async()=>{ openSheet('#shareSheet'); $('#copyMsg').textContent=''; $('#visitMsg').textContent=''; $('#shareOut').value='Packing your universe…'; $('#shareOut').value=await encode(serialize()); });
 $('#copyBtn').addEventListener('click',async()=>{ const ta=$('#shareOut'); try{ await navigator.clipboard.writeText(ta.value); $('#copyMsg').textContent='Copied.'; }
   catch(e){ ta.focus(); ta.select(); $('#copyMsg').textContent='Select the code and copy it.'; } });
@@ -1241,9 +1295,14 @@ async function decode(code){ code=code.replace(/\s+/g,''); const i=code.indexOf(
 
 /* ---------- picking ---------- */
 const ray=new THREE.Raycaster(), ndc=new THREE.Vector2(), plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
-function pickAt(x,y){ ndc.set(x/innerWidth*2-1,-(y/innerHeight)*2+1); ray.setFromCamera(ndc,camera); const h=ray.intersectObjects(hitTargets,false); return h.length?h[0].object.userData.ref:null; }
+function pickAt(x,y,loose){ ndc.set(x/innerWidth*2-1,-(y/innerHeight)*2+1); ray.setFromCamera(ndc,camera); const h=ray.intersectObjects(hitTargets,false); if(h.length) return h[0].object.userData.ref;
+  if(!loose) return null;
+  /* nothing under the thumb: take the nearest visible object within about 26px */
+  let best=null,bd=26*26; for(const t of hitTargets){ if(!t.visible||!t.parent) continue; const o=t.userData.ref; if(o.kind==='planet'&&o.smeared) continue; if(o.kind==='moon'&&!o.mesh.visible) continue;
+    t.getWorldPosition(_ta); _ta.project(camera); if(_ta.z>1) continue; const px=(_ta.x*.5+.5)*innerWidth, py=(-_ta.y*.5+.5)*innerHeight; const d2=(px-x)*(px-x)+(py-y)*(py-y); if(d2<bd){ bd=d2; best=o; } }
+  return best; }
 function handleTap(x,y){
-  const o=pickAt(x,y);
+  const o=pickAt(x,y,coarse);
   if(probeFrom){ const from=probeFrom; probeFrom=null; setHint(); if(o&&o!==from) launchProbe(from,o); else toast('Probe stood down.'); return; }
   if(o){ if(o===sel&&o.kind==='star') growPlanet(o); else select(o); return; }
   const pt=new THREE.Vector3(); if(!ray.ray.intersectPlane(plane,pt)){ toast('Tilt the view down to reach open space'); return; } world.worldToLocal(pt);
@@ -1317,7 +1376,7 @@ function frame(t){
   requestAnimationFrame(frame);
   const dt=Math.min(.1,(t-last)/1000); last=t; now+=dt; const dy=dt*ypr; simT+=dy;
   if(dy>0){ setGalaxyRot(simT); toWorld(anchorLocal,_ta).sub(controls.target); controls.target.add(_ta); camera.position.add(_ta); }
-  galaxyFade();
+  galaxyFade(); perfTick(dt);
   orbitT+=dt; const doOrbits=orbitT>.4; if(doOrbits){ orbitT=0; if(dy>0) updateCounts(); }
   for(const s of [...stars]){
     s.d.age+=dy; s.body.rotation.y+=.04*dt;
@@ -1410,7 +1469,7 @@ function start(snap){
   const state=(snap&&Array.isArray(snap.stars))?snap:(loadSaved()||sample());
   loadState(state); desiredDist=null;
   try{ const sv=localStorage.getItem(STORE+'-sound'); if(sv==='0'){ soundOn=false; $('#sound').setAttribute('aria-pressed','false'); $('#soundT').textContent='Sound off'; $('#wave').style.display='none'; } }catch(e){}
-  renderDisc(); setTimeout(tourStart,1200);
+  renderDisc(); layout(); setTimeout(tourStart,1200);
   requestAnimationFrame(t=>{ last=t; frame(t); });
 }
 try{ window.claude?.hot?.snapshot?.(()=>serialize()); }catch(e){}
