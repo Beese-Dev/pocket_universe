@@ -185,6 +185,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path id="wave" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
         <span class="t" id="soundT">Sound on</span>
       </button>
+      <div class="seg" id="touchSeg" role="group" aria-label="One finger" hidden>
+        <span class="lead">One finger</span>
+        <button data-touch="pan" aria-pressed="true">Moves</button>
+        <button data-touch="spin" aria-pressed="false">Spins</button>
+      </div>
       <button class="chip" id="overview"><span>Overview</span></button>
       <button class="chip" id="reset"><span>New universe</span></button>
       <button class="chip" id="resetNo" hidden>Keep it</button>
@@ -235,7 +240,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   <div class="card" role="dialog" aria-labelledby="menuH">
     <div class="ph"><h2 id="menuH">Menu</h2><button class="x" data-close aria-label="Close">×</button></div>
     <div class="menuGrid" id="menuGrid"></div>
-    <p>Two fingers drag to pan, pinch to zoom, one finger to spin.</p>
+    <p>Pinch to zoom. Dragging away from a selected world stops the camera following it; tap it again to follow.</p>
   </div>
 </div>
 <div class="sheet" id="timeSheet" hidden>
@@ -319,7 +324,12 @@ camera.position.set(14,46,78);
 const controls=new THREE.OrbitControls(camera,canvas);
 controls.enableDamping=true; controls.dampingFactor=.08;
 controls.minDistance=3; controls.maxDistance=60000; controls.maxPolarAngle=Math.PI*.94;
-controls.rotateSpeed=.7; controls.zoomSpeed=.9;
+controls.rotateSpeed=.7; controls.zoomSpeed=.9; controls.panSpeed=1.15; controls.screenSpacePanning=false; /* pan slides along the orbital plane, like pushing a map */
+controls.dampingFactor=.12;
+let oneFingerPan=true; try{ oneFingerPan=localStorage.getItem(STORE+'-touch')!=='spin'; }catch(e){}
+function applyTouch(){ controls.touches.ONE=oneFingerPan?THREE.TOUCH.PAN:THREE.TOUCH.ROTATE; controls.touches.TWO=THREE.TOUCH.DOLLY_ROTATE; }
+applyTouch();
+let following=true;
 const composer=new THREE.EffectComposer(renderer);
 composer.addPass(new THREE.RenderPass(scene,camera));
 const bloom=new THREE.UnrealBloomPass(new THREE.Vector2(coarse?192:256,coarse?192:256),0.95,.5,.92);
@@ -1135,7 +1145,7 @@ function minDistFor(o){ return !o?3:o.kind==='star'?o.T.r*1.6*(o.giantF||1):o.ki
 function moonPeriodDays(m){ return moonPeriodYears(m.planet,m.d)*365.25; }
 function select(o,zoom=true){
   if(sel&&sel.labelEl) sel.labelEl.classList.remove('sel');
-  if(o&&o!==sel) panelCompact=true;
+  if(o&&o!==sel) panelCompact=true; following=true;
   sel=o; marker.visible=!!o; controls.minDistance=minDistFor(o);
   if(o){ o.labelEl.classList.add('sel');
     if(zoom) desiredDist=o.kind==='star'?Math.max(42,outerR(o)*2.5):o.kind==='hole'?o.r*14:o.kind==='moon'?o.d.size*9+1:(o.d.rings?o.d.size*12:o.d.size*10)+7; }
@@ -1186,9 +1196,9 @@ function updatePanel(){ applyCompact();
     pSecondary.textContent='Fly down';
   }
 }
-function flyDown(p){ if(p.smeared){ toast('Slow time down to visit a planet'); return; } desiredDist=p.d.size*(p.d.rings?3.2:2.3); toast(`Descending toward ${p.d.name}. Drag to look around.`); }
-pPrimary.addEventListener('click',()=>{ if(!sel) return; if(sel.kind==='star') growPlanet(sel); else if(sel.kind==='hole') desiredDist=sel.r*4.5; else if(sel.kind==='moon') desiredDist=sel.d.size*2.4; else if(sel.rogue) flyDown(sel); else addMoon(sel); });
-pSecondary.addEventListener('click',()=>{ if(!sel) return; if(sel.kind==='star') desiredDist=Math.max(42,outerR(sel)*2.6); else if(sel.kind==='hole') removeHole(sel); else if(sel.kind==='moon') select(sel.planet); else if(sel.rogue) select(sel.star); else flyDown(sel); });
+function flyDown(p){ if(p.smeared){ toast('Slow time down to visit a planet'); return; } following=true; desiredDist=p.d.size*(p.d.rings?3.2:2.3); toast(`Descending toward ${p.d.name}. Drag to look around.`); }
+pPrimary.addEventListener('click',()=>{ if(!sel) return; following=true; if(sel.kind==='star') growPlanet(sel); else if(sel.kind==='hole') desiredDist=sel.r*4.5; else if(sel.kind==='moon') desiredDist=sel.d.size*2.4; else if(sel.rogue) flyDown(sel); else addMoon(sel); });
+pSecondary.addEventListener('click',()=>{ if(!sel) return; following=true; if(sel.kind==='star') desiredDist=Math.max(42,outerR(sel)*2.6); else if(sel.kind==='hole') removeHole(sel); else if(sel.kind==='moon') select(sel.planet); else if(sel.rogue) select(sel.star); else flyDown(sel); });
 pProbe.addEventListener('click',()=>{ if(!sel||sel.kind!=='planet') return; probeFrom=sel; toast(`Probe armed on ${sel.d.name}. Tap a destination: any star, planet, moon or black hole.`); hint.hidden=false; hint.innerHTML='<span><b>Tap a destination</b> for the probe · tap empty space to cancel</span>'; });
 pCard.addEventListener('click',()=>postcard(sel));
 pNotesBtn.addEventListener('click',()=>{ notesOpen=!notesOpen; panelCompact=false; updatePanel(); });
@@ -1200,7 +1210,7 @@ addEventListener('keydown',e=>{ if(e.key==='Escape'){ if([...document.querySelec
 
 function setHint(){ const what=seedMode==='hole'?'plant a black hole':'plant a star';
   hint.innerHTML=(coarse
-    ?[`<span><b>Tap empty space</b> to ${what}</span>`,'<span><b>Tap a star twice</b> to grow a planet</span>','<span>One finger spins · two fingers pan · pinch to zoom</span>']
+    ?[`<span><b>Tap empty space</b> to ${what}</span>`,'<span><b>Tap a star twice</b> to grow a planet</span>',oneFingerPan?'<span>One finger moves · two fingers spin · pinch to zoom</span>':'<span>One finger spins · two fingers move · pinch to zoom</span>']
     :[`<span><b>Click empty space</b> to ${what}</span>`,'<span><b>Click a star twice</b> to grow a planet</span>','<span>Drag to spin · scroll to zoom · right-drag or arrow keys to pan</span>']).join(''); }
 setHint();
 
@@ -1225,10 +1235,12 @@ let mobile=false;
 const RATE_NAMES=['Pause','day/s','mo/s','yr/s','kyr/s','Myr/s'];
 function layout(){ const m=coarse&&Math.min(innerWidth,innerHeight)<700||innerWidth<620; if(m===mobile) return; mobile=m; document.body.classList.toggle('mobile',m);
   const tools=$('.tools'), menu=$('#menuGrid'), tg=$('#timeGrid');
-  if(m){ menu.append($('#overview'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#reset'),$('#resetNo')); tg.append($('#timeSeg')); $('#timeChip').hidden=false; $('#menuChip').hidden=false; }
-  else { tools.append($('#seedSeg'),$('#timeSeg'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#overview'),$('#reset'),$('#resetNo'),$('#homeBtn')); $('#timeChip').hidden=true; $('#menuChip').hidden=true; closeSheets(); }
+  if(m){ menu.append($('#overview'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#touchSeg'),$('#reset'),$('#resetNo')); $('#touchSeg').hidden=!coarse; tg.append($('#timeSeg')); $('#timeChip').hidden=false; $('#menuChip').hidden=false; }
+  else { tools.append($('#seedSeg'),$('#timeSeg'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#touchSeg'),$('#overview'),$('#reset'),$('#resetNo'),$('#homeBtn')); $('#touchSeg').hidden=true; $('#timeChip').hidden=true; $('#menuChip').hidden=true; closeSheets(); }
   applyCompact(); }
 $('#menuChip').addEventListener('click',()=>openSheet('#menuSheet'));
+document.querySelectorAll('[data-touch]').forEach(b=>{ b.setAttribute('aria-pressed',String((b.dataset.touch==='pan')===oneFingerPan)); b.addEventListener('click',()=>{ oneFingerPan=b.dataset.touch==='pan'; applyTouch(); setHint();
+  document.querySelectorAll('[data-touch]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); try{ localStorage.setItem(STORE+'-touch',oneFingerPan?'pan':'spin'); }catch(e){} }); });
 $('#timeChip').addEventListener('click',()=>openSheet('#timeSheet'));
 addEventListener('resize',layout);
 let toastT=0; function toast(msg,disc){ const t=$('#toast'); t.textContent=msg; t.classList.toggle('disc',!!disc); t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),disc?3200:2600); }
@@ -1304,7 +1316,7 @@ function pickAt(x,y,loose){ ndc.set(x/innerWidth*2-1,-(y/innerHeight)*2+1); ray.
 function handleTap(x,y){
   const o=pickAt(x,y,coarse);
   if(probeFrom){ const from=probeFrom; probeFrom=null; setHint(); if(o&&o!==from) launchProbe(from,o); else toast('Probe stood down.'); return; }
-  if(o){ if(o===sel&&o.kind==='star') growPlanet(o); else select(o); return; }
+  if(o){ if(o===sel&&o.kind==='star') growPlanet(o); else if(o===sel){ following=true; } else select(o); return; }
   const pt=new THREE.Vector3(); if(!ray.ray.intersectPlane(plane,pt)){ toast('Tilt the view down to reach open space'); return; } world.worldToLocal(pt);
   const pad=seedMode==='hole'?10:14;
   for(const s of stars){ if(pt.distanceTo(s.group.position)<outerR(s)+pad){ toast(`Too close to ${s.d.name}. Give it some room.`); return; } }
@@ -1424,8 +1436,8 @@ function frame(t){
   for(let i=effects.length-1;i>=0;i--){ const e=effects[i]; e.t+=dt; if(e.t>=e.life){ e.done(); effects.splice(i,1); } else e.step(dt); }
 
   if(sel){ worldPos(sel,wp);
-    delta.copy(wp).sub(controls.target); const k=delta.length()<2?1:1-Math.exp(-dt*(reduce?30:3.5));
-    delta.multiplyScalar(k); controls.target.add(delta); camera.position.add(delta);
+    if(following){ delta.copy(wp).sub(controls.target); const k=delta.length()<2?1:1-Math.exp(-dt*(reduce?30:4.5));
+      delta.multiplyScalar(k); controls.target.add(delta); camera.position.add(delta); }
     marker.position.copy(wp); marker.quaternion.copy(camera.quaternion);
     const r=sel.kind==='star'?(sel.d.binary&&sel.d.cls!=='P'&&sel.d.cls!=='D'?sel.d.binary.sep/2+sel.T.r*1.6:sel.T.r*1.9*(sel.giantF||1)):sel.kind==='hole'?sel.r*5:sel.d.size*(sel.d.rings?2.6:1.75);
     marker.scale.setScalar(r*(1+.035*Math.sin(now*3)));
@@ -1435,7 +1447,8 @@ function frame(t){
     off.setLength(nl); camera.position.copy(controls.target).add(off); if(Math.abs(nl-desiredDist)<desiredDist*.01) desiredDist=null; }
   keyPan(dt);
   if(overviewTarget){ delta.copy(overviewTarget).sub(controls.target); const k=delta.length()<.5?1:1-Math.exp(-dt*3); delta.multiplyScalar(k); controls.target.add(delta); camera.position.add(delta); if(k===1) overviewTarget=null; }
-  controls.update(); world.worldToLocal(anchorLocal.copy(controls.target));
+  _ta2.copy(controls.target); controls.update(); if(sel&&following&&controls.target.distanceTo(_ta2)>camera.position.distanceTo(controls.target)*.003) following=false; /* the player dragged away: stop chasing */
+  world.worldToLocal(anchorLocal.copy(controls.target));
   sky.position.copy(camera.position);
 
   /* ambient: follow whatever is nearest the camera's focus */
