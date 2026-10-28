@@ -94,6 +94,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   font-size:12.5px;color:var(--dim);text-align:center;text-shadow:0 0 8px #000}
 #hint span b{color:var(--ink);font-weight:600}
 #slowBadge{color:var(--accent)!important}
+#eventBar{position:fixed;left:50%;transform:translateX(-50%);top:max(132px,calc(env(safe-area-inset-top,0px) + 126px));z-index:5;display:flex;align-items:center;gap:10px;max-width:calc(100% - 32px);
+  background:var(--glass);border:1px solid rgba(255,201,138,.5);border-radius:12px;padding:8px 8px 8px 14px;font-size:13px;color:var(--ink);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 12px 40px rgba(0,0,0,.45)}
+#eventBar .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);flex:none;animation:pulse 1.4s ease-in-out infinite}
+#eventBar #eventTxt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#eventBar .btn{padding:8px 12px;font-size:12px;flex:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){ #eventBar .dot{animation:none} }
 #tour{position:fixed;left:50%;transform:translateX(-50%);bottom:max(18px,calc(env(safe-area-inset-bottom,0px) + 14px));z-index:6;width:min(440px,calc(100% - 32px))}
 .tcard{background:var(--glass);border:1px solid rgba(255,201,138,.45);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .tcard p{margin:0;font-size:14px;line-height:1.45;color:var(--ink)}
@@ -151,6 +158,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   #toast{top:auto;bottom:max(78px,calc(env(safe-area-inset-bottom,0px) + 74px));transform:translate(-50%,6px);font-size:12.5px}
   #toast.on{transform:translate(-50%,0)}
   #tour{bottom:auto;top:max(134px,calc(env(safe-area-inset-top,0px) + 128px))}
+  #eventBar{top:max(82px,calc(env(safe-area-inset-top,0px) + 76px));font-size:12px}
   /* the panel is a bottom sheet: compact until you ask for more */
   #pMore{display:inline-flex;background:transparent;border:1px solid var(--faint);color:var(--dim);border-radius:9px;font:500 12px/1 var(--f-ui);padding:8px 11px;cursor:pointer;align-items:center;gap:4px}
   #panel.compact #pStats,#panel.compact #pNotes,#panel.compact #pNotesBtn,#panel.compact #pProbe,#panel.compact #pCard,#panel.compact .namefield small{display:none}
@@ -198,8 +206,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       </button>
       <div class="seg" id="slowSeg" role="group" aria-label="Slow motion for events">
         <span class="lead">Events</span>
-        <button data-slow="1" aria-pressed="true" title="Ease time to 20% around stellar events at kyr/s and Myr/s">Slow-mo</button>
-        <button data-slow="0" aria-pressed="false" title="Keep the dial speed through events">Real-time</button>
+        <button data-slow="1" aria-pressed="true" title="Fly to major events, frame them and ease time">Follow</button>
+        <button data-slow="0" aria-pressed="false" title="Only mention events; never move the camera or the clock">Ignore</button>
       </div>
       <div class="seg" id="touchSeg" role="group" aria-label="One finger" hidden>
         <span class="lead">One finger</span>
@@ -235,6 +243,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     </section>
   </div>
 </div>
+<div id="eventBar" hidden><span class="dot"></span><span id="eventTxt"></span><button class="btn ghost" id="eventBack">Return</button></div>
 <div id="hint"></div>
 <div id="tour" hidden>
   <div class="tcard">
@@ -580,7 +589,19 @@ let rateIdx=1, ypr=RATES[1].y, simT=0;
 /* slow motion around stellar events: at kyr/s and Myr/s the clock eases to 20% so the moment can be watched */
 let slowOn=true; try{ slowOn=localStorage.getItem(STORE+'-slow')!=='0'; }catch(e){}
 let slowK=1, slowHold=0, slowReason=null, slowAnnounced=null;
-function slowEvent(label){ if(ypr<1e3||!slowOn) return; slowHold=6; slowReason=label; }
+function slowEvent(label){ if(ypr<1e3||!slowOn) return; slowHold=8; slowReason=label; }
+/* the event camera: fly to the event, frame it, remember where the player was */
+let eventView=null, eventKey=null, eventT=0;
+function focusEvent(obj,label,key){ if(!slowOn||!obj) return; if(key&&eventKey===key) return; eventKey=key||label;
+  if(pointers.size) { toast(label); return; } /* never yank the view out of someone's hand */
+  if(!eventView) eventView={target:controls.target.clone(),cam:camera.position.clone(),sel};
+  eventT=0; select(obj,false); following=true;
+  desiredDist=obj.kind==='star'?Math.max(30,outerR(obj)*1.7+12):obj.kind==='hole'?obj.r*10:obj.kind==='planet'?(obj.d.size*8+6):20;
+  $('#eventTxt').textContent=label; $('#eventBar').hidden=false; }
+function eventReturn(){ const v=eventView; eventView=null; eventKey=null; $('#eventBar').hidden=true; if(!v) return;
+  const ok=v.sel&&hitTargets.includes(v.sel.hit); select(ok?v.sel:null,false); following=ok;
+  overviewTarget=v.target.clone(); desiredDist=v.cam.distanceTo(v.target); }
+function eventDismiss(){ eventView=null; eventKey=null; $('#eventBar').hidden=true; }
 function eventSoon(){ if(ypr<1e3||!slowOn) return null; const win=ypr*2.5;
   for(const s of stars){ const L=lifetime(s); if(isFinite(L)){ const G=L*.1, a=s.d.age, massive=primaryMass(s)>=8;
       if(a<L&&L-a<win) return {s,what:`${s.d.name} is about to swell into a red ${massive?'supergiant':'giant'}`};
@@ -843,7 +864,7 @@ function bindStar(s,h){ const dx=s.d.x-h.d.x, dz=s.d.z-h.d.z; s.d.bound={hole:h.
   toast(`${s.d.name} is now bound to ${h.d.name}`); discover('bound'); }
 function bindNearby(h){ for(const s of stars){ if(!s.d.bound&&Math.hypot(s.d.x-h.d.x,s.d.z-h.d.z)<bindRange(h)) bindStar(s,h); } }
 function growHole(h,dm){ h.d.mass=+(h.d.mass+dm).toFixed(1); const nr=1.2+h.d.mass*.1; h.group.scale.setScalar(nr/h.r0); h.r=nr; refreshLabel(h); }
-function disruptStar(s,h){ const a=s.group.position.clone(), b=h.group.position.clone(), mid=a.clone().lerp(b,.5); slowEvent(`${h.d.name} tore ${s.d.name} apart`);
+function disruptStar(s,h){ const a=s.group.position.clone(), b=h.group.position.clone(), mid=a.clone().lerp(b,.5); slowEvent(`${h.d.name} tore ${s.d.name} apart`); focusEvent(h,`Tidal disruption: ${s.d.name}`,h.d.seed+':tde'+s.d.catalog);
   burst(a,s.col,220,10,.8); burst(mid,new THREE.Color(1,.8,.5),200,14,.7); flash(b,h.r*16); shock(b,new THREE.Color(1,.7,.4),80); boom(.8,b);
   dropStream(s); world.remove(s.group); s.labelEl.remove(); s.planets.forEach(killPlanet); stars=stars.filter(x=>x!==s); hitTargets=hitTargets.filter(x=>x!==s.hit);
   if(sel===s||(sel&&sel.star===s)) select(h); growHole(h,s.d.mass*.5);
@@ -865,12 +886,12 @@ function stepStream(s,h,dt){ const st=s.stream, k=s.body.scale.x; _a.copy(h.grou
     st.P[i*3]=x+(Math.random()-.5)*.5; st.P[i*3+1]=(Math.random()-.5)*.5*(1-t); st.P[i*3+2]=z+(Math.random()-.5)*.5;
     st.C[i*3]=col.r+(1.2-col.r)*t; st.C[i*3+1]=col.g+(1.2-col.g)*t; st.C[i*3+2]=col.b+(1.5-col.b)*t; }
   st.g.attributes.position.needsUpdate=true; st.g.attributes.color.needsUpdate=true; }
-function consumeStar(s,h){ const pos=s.group.position.clone(); slowEvent(`${h.d.name} swallowed ${s.d.name}`); burst(pos,s.col,160,8,.6); flash(h.group.position,h.r*12); boom(.5,pos);
+function consumeStar(s,h){ const pos=s.group.position.clone(); slowEvent(`${h.d.name} swallowed ${s.d.name}`); focusEvent(h,`${h.d.name} swallows ${s.d.name}`,h.d.seed+':eat'); burst(pos,s.col,160,8,.6); flash(h.group.position,h.r*12); boom(.5,pos);
   for(const p of [...s.planets]){ stripMoons(p); fling(s,p,1.5); }
   dropStream(s); world.remove(s.group); s.labelEl.remove(); stars=stars.filter(x=>x!==s); hitTargets=hitTargets.filter(x=>x!==s.hit);
   if(sel===s) select(h); growHole(h,s.d.mass); toast(`${h.d.name} swallowed what was left of ${s.d.name}.`); discover('consumed'); changed(); }
 function transferRate(s,h){ return (s.d.mass0||s.d.mass)*1e-8*(1+(rocheR(s,h)-s.d.bound.r)/rocheR(s,h)*2); } /* solar masses per year */
-function stepTransfer(s,h,dy,dt){ const d=s.d; if(!d.mass0) d.mass0=d.mass; if(!s.stream){ makeStream(s,h); toast(`${d.name} is overflowing onto ${h.d.name}: an X-ray binary`); discover('xray'); }
+function stepTransfer(s,h,dy,dt){ const d=s.d; if(!d.mass0) d.mass0=d.mass; if(!s.stream){ makeStream(s,h); toast(`${d.name} is overflowing onto ${h.d.name}: an X-ray binary`); discover('xray'); focusEvent(h,`X-ray binary: ${d.name} feeds ${h.d.name}`,h.d.seed+':xray'+d.catalog); }
   const rate=transferRate(s,h); const dm=Math.min(d.mass,rate*dy); d.mass=+(d.mass-dm).toFixed(4); h.d.mass=+(h.d.mass+dm).toFixed(4);
   s.massK=Math.pow(d.mass/d.mass0,.6); h.feed=Math.min(1,h.feed+dt); if(h.feed>=1&&Math.random()<dt*.5) refreshLabel(h);
   if(!d.unbound&&d.mass<d.mass0*.5&&s.planets.length){ d.unbound=true; for(const p of [...s.planets]){ stripMoons(p); fling(s,p,1); } toast(`${d.name} has lost half its mass; its planets drift free`); discover('rogue'); changed(); }
@@ -900,7 +921,7 @@ function fling(s,p,kick){ const a=p.angle, v=omega(s,p.d.orbit)*p.d.orbit; kick*
   p.rogue={vel:new THREE.Vector3(-Math.sin(a)*v+Math.cos(a)*kick,0,Math.cos(a)*v+Math.sin(a)*kick),from:s.d.name,origin:s.group.position.clone()};
   rogues.push(p); refreshLabel(p); }
 function supernova(s){
-  const pos=s.group.position.clone(), col=new THREE.Color(1,.85,.7); slowEvent(`${s.d.name} went supernova`);
+  const pos=s.group.position.clone(), col=new THREE.Color(1,.85,.7); slowEvent(`${s.d.name} went supernova`); focusEvent(s,`Supernova: ${s.d.name}`,s.d.catalog+':sn');
   burst(pos,col,600,42,1.5); shock(pos,new THREE.Color(.8,.9,1),170); flash(pos,110); boom(1,pos);
   const Rv=s.T.r*4.5, lost=[], cores=[], flung=[];
   for(const p of [...s.planets]){ const d=p.d;
@@ -913,7 +934,7 @@ function supernova(s){
   makeRemnant({x:pos.x,z:pos.z,t:0,seed:rand(0,60),kind:0});
   const parts=[]; if(lost.length) parts.push(`${lost.join(', ')} vaporised`); if(cores.length) parts.push(`${cores.join(', ')} stripped to the core`); if(flung.length) parts.push(`${flung.length} world${flung.length===1?'':'s'} flung loose`);
   if(collapse){ dropStream(s); world.remove(s.group); s.labelEl.remove(); stars=stars.filter(x=>x!==s); hitTargets=hitTargets.filter(x=>x!==s.hit); if(sel===s) select(null);
-    const h=makeHole({name:d.name,mass:+(M*.3).toFixed(1),x:pos.x,z:pos.z,seed:rand(0,60)},true); rebuildAllOrbits(); bindNearby(h);
+    const h=makeHole({name:d.name,mass:+(M*.3).toFixed(1),x:pos.x,z:pos.z,seed:rand(0,60)},true); rebuildAllOrbits(); bindNearby(h); eventKey=null; focusEvent(h,`Collapse: ${d.name} became a black hole`,h.d.seed+':collapse');
     toast(`${d.name} went supernova. ${parts.length?parts.join('; ')+'.':''} Its core collapsed into a black hole.`); discover('collapse'); discover('hole'); }
   else { d.binary=null; d.cls='P'; d.temp=Math.round(rand(6,12))*100000; d.mass=1.4; d.age=0; d.giant=false; s.giantF=1; s.suns.forEach(x=>x.mat.uniforms.uSwell.value=0);
     buildBody(s); refreshLabel(s);
@@ -922,7 +943,7 @@ function supernova(s){
   if(hadBinary) setTimeout(()=>toast('Its companion star was thrown clear of the blast.'),3500);
   updatePanel(); changed();
 }
-function whiteDwarf(s){ const d=s.d, pos=s.group.position.clone(), M0=d.mass; slowEvent(`${d.name} shed its outer layers`);
+function whiteDwarf(s){ const d=s.d, pos=s.group.position.clone(), M0=d.mass; slowEvent(`${d.name} shed its outer layers`); focusEvent(s,`Planetary nebula: ${d.name}`,d.catalog+':wd');
   burst(pos,s.col,320,14,.9); shock(pos,new THREE.Color(.5,1,.85),70); flash(pos,40); chime(s.T.hz*2,3,.06,'D');
   makeRemnant({x:pos.x,z:pos.z,t:0,seed:rand(0,60),kind:1});
   const Mwd=+Math.min(1.3,.45+.1*M0).toFixed(2); const flung=[];
@@ -942,7 +963,7 @@ function capture(p,o,dist){
   p.orbitLine=new THREE.Line(og,new THREE.LineBasicMaterial({color:o.col,transparent:true,opacity:.17,depthWrite:false})); o.group.add(p.orbitLine);
   p.mat.uniforms.uStarPos.value=o.group.position; p.mat.uniforms.uStarCol.value=o.lightCol; p.atmo.material.uniforms.uStarPos.value=o.group.position;
   o.planets.push(p); o.planets.sort((a,b)=>a.d.orbit-b.d.orbit); o.d.planets=o.planets.map(x=>x.d);
-  rebuildOrbit(p); refreshLabel(p); toast(`${o.d.name} captured ${p.d.name}`); chime(o.T.hz*.75,2.2,.05,o.d.cls); discover('captured'); updatePanel(); changed(); }
+  rebuildOrbit(p); refreshLabel(p); toast(`${o.d.name} captured ${p.d.name}`); focusEvent(p,`${o.d.name} captured a rogue world`,p.d.seed+':cap'); chime(o.T.hz*.75,2.2,.05,o.d.cls); discover('captured'); updatePanel(); changed(); }
 function stepRogue(p,dy){ const r=p.rogue, h=p.holder.position;
   _v.copy(p.star.group.position).sub(h); const d2=_v.lengthSq()+1; _v.normalize().multiplyScalar(133245*p.star.d.mass/d2*dy); r.vel.add(_v);
   h.addScaledVector(r.vel,dy); spinPlanet(p,dy); p.mat.uniforms.uTime.value=now;
@@ -1064,7 +1085,7 @@ function impact(c,p,where){ const d=p.d, pos=where.clone(); const big=d.type==='
   burst(pos,new THREE.Color(1,.75,.45),big?60:130,big?3:6,.5); flash(pos,d.size*(big?5:9)); boom(big?.2:.45,pos); chime(110,1.8,.05,'M');
   d.impacts=(d.impacts||0)+1; if(!big){ d.dust=Math.min(1,(d.dust||0)+.8); }
   let msg=c?`A comet struck ${d.name}`:`An asteroid struck ${d.name}`;
-  if(!big&&!d.extinct&&speciesOf(p)){ if(Math.random()<.55){ d.extinct=true; msg+=`. Its ${speciesOf(p)} did not survive the impact winter`; discover('extinction'); } else msg+='. Dust veils the sky; life clings on'; }
+  if(!big&&!d.extinct&&speciesOf(p)){ if(Math.random()<.55){ d.extinct=true; msg+=`. Its ${speciesOf(p)} did not survive the impact winter`; discover('extinction'); focusEvent(p,`Mass extinction on ${d.name}`,d.seed+':ext'); } else msg+='. Dust veils the sky; life clings on'; }
   else if(big) msg+=': a dark bruise spreads across the cloud tops';
   else if(d.type==='ocean'||d.type==='rocky') msg+='. New craters, and a little more water';
   else msg+=', scattering debris';
@@ -1298,7 +1319,7 @@ const GUIDE=[
   ['Planting','Tap empty space to plant a star; its class (and so its colour, mass and lifetime) is rolled for you, and about one in seven arrives as a binary pair. Each star is born with a protoplanetary disc that lasts five million years. Switch Plant to Black hole to plant one of those instead.'],
   ['Planets and moons','While the disc lasts, Grow a planet condenses a world from it, up to eight; at kyr/s and faster they condense on their own. Type depends on distance: lava and rocky worlds close in, gas and ice far out. Planets that hug their star are tidally locked. Add up to four moons to any planet. Once the disc is gone, only a captured rogue world can join a system.'],
   ['Naming and notes','Tap the name in the panel to rename a star, planet, moon or black hole. Field notes give day length, gravity, temperature, atmosphere, weather and life; life appears on rocky and ocean worlds inside the green habitable zone. Postcard renders the current view with the notes typeset on it.'],
-  ['Time','The dial sets how much simulated time passes per real second, from a day to a million years. At kyr/s and Myr/s the clock eases to a fifth of the dial speed just before and after a star changes state, so you can watch it; Events: Real-time turns this off. At the two fastest speeds, planets whose year is shorter than a frame are drawn as a smear along their orbit. Space pauses; [ and ] step the dial on a keyboard. The T+ readout shows how much time has passed.'],
+  ['Time','The dial sets how much simulated time passes per real second, from a day to a million years. When a star changes state, a black hole feeds or tears something apart, or life is wiped out, the camera flies there and frames it; at kyr/s and Myr/s the clock also eases to a fifth of the dial speed just before and after. Return takes you back to where you were. Events: Ignore turns all of this off. At the two fastest speeds, planets whose year is shorter than a frame are drawn as a smear along their orbit. Space pauses; [ and ] step the dial on a keyboard. The T+ readout shows how much time has passed.'],
   ['How stars live and die','A star lives ten billion years divided by its mass to the power 2.5: red dwarfs effectively forever, the Sun ten billion years, a blue giant a few million. At the end it swells into a red giant and swallows its inner planets. Under eight solar masses it then sheds a planetary nebula and leaves a white dwarf; above eight it goes supernova, vaporising close planets, flinging the rest loose as rogue worlds, and leaving a pulsar, or a black hole above twenty solar masses.'],
   ['Black holes','A black hole bends nearby orbits and captures stars within range, which then circle it with their whole systems. A star planted inside the tidal radius is torn apart; one a little further out overflows onto the hole as an X-ray binary, shrinking until it is swallowed. Rogue planets, comets and probes that stray too close are lost. Evaporate removes a hole and frees its stars.'],
   ['Comets and impacts','Comets fall through systems on their own. One that hits a planet raises a dust veil that lasts about a decade and can end any life there; one that hits a gas giant leaves a bruise; one in five plunges into the star. At high speeds, impacts are rolled statistically at about one major strike per planet per hundred million years.'],
@@ -1320,8 +1341,9 @@ function layout(){ const m=coarse&&Math.min(innerWidth,innerHeight)<700||innerWi
   else { tools.append($('#seedSeg'),$('#timeSeg'),$('#discBtn'),$('#guideBtn'),$('#shareBtn'),$('#sound'),$('#slowSeg'),$('#touchSeg'),$('#overview'),$('#reset'),$('#resetNo'),$('#homeBtn')); $('#touchSeg').hidden=true; $('#timeChip').hidden=true; $('#menuChip').hidden=true; closeSheets(); }
   applyCompact(); }
 $('#menuChip').addEventListener('click',()=>openSheet('#menuSheet'));
+$('#eventBack').addEventListener('click',eventReturn);
 document.querySelectorAll('[data-slow]').forEach(b=>{ b.setAttribute('aria-pressed',String((b.dataset.slow==='1')===slowOn)); b.addEventListener('click',()=>{ slowOn=b.dataset.slow==='1'; if(!slowOn){ slowHold=0; }
-  document.querySelectorAll('[data-slow]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); try{ localStorage.setItem(STORE+'-slow',slowOn?'1':'0'); }catch(e){} toast(slowOn?'Time will ease to 20% around stellar events at kyr/s and Myr/s.':'Events play at full dial speed.'); }); });
+  document.querySelectorAll('[data-slow]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); try{ localStorage.setItem(STORE+'-slow',slowOn?'1':'0'); }catch(e){} toast(slowOn?'The camera will fly to major events and ease time while they happen.':'Events are only mentioned; the camera and clock are yours.'); }); });
 document.querySelectorAll('[data-touch]').forEach(b=>{ b.setAttribute('aria-pressed',String((b.dataset.touch==='pan')===oneFingerPan)); b.addEventListener('click',()=>{ oneFingerPan=b.dataset.touch==='pan'; applyTouch(); setHint();
   document.querySelectorAll('[data-touch]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); try{ localStorage.setItem(STORE+'-touch',oneFingerPan?'pan':'spin'); }catch(e){} }); });
 $('#timeChip').addEventListener('click',()=>openSheet('#timeSheet'));
@@ -1413,7 +1435,7 @@ addEventListener('pointerup',e=>{ pointers.delete(e.pointerId);
   tap=null; });
 addEventListener('pointercancel',e=>{ pointers.delete(e.pointerId); tap=null; });
 canvas.addEventListener('pointermove',e=>{ if(pointers.size||coarse) return; canvas.style.cursor=pickAt(e.clientX,e.clientY)?'pointer':'crosshair'; });
-controls.addEventListener('start',()=>{ desiredDist=null; overviewTarget=null; });
+controls.addEventListener('start',()=>{ desiredDist=null; overviewTarget=null; if(eventView&&eventT>2) eventDismiss(); });
 
 /* ---------- persistence ---------- */
 function serialize(){ stars.forEach(s=>s.planets.forEach(p=>{ p.d.angle=+(p.angle%TAU).toFixed(3); p.moons.forEach(m=>m.d.angle=+(m.pivot.rotation.y%TAU).toFixed(3)); }));
@@ -1470,9 +1492,10 @@ let last=performance.now(), nearT=0, orbitT=0, massT=0;
 function frame(t){
   requestAnimationFrame(frame);
   const dt=Math.min(.1,(t-last)/1000); last=t; now+=dt;
-  const ev=eventSoon(); if(ev&&slowAnnounced!==ev.what){ slowAnnounced=ev.what; toast(`Slow motion: ${ev.what}`); if(!sel) select(ev.s); } if(!ev&&slowHold<=0) slowAnnounced=null;
-  slowHold=Math.max(0,slowHold-dt); const slowTarget=(ev||slowHold>0)?.2:1; slowK+=(slowTarget-slowK)*Math.min(1,dt*(slowTarget<slowK?6:1.5));
-  if(ev) slowReason=ev.what; const badge=$('#slowBadge'); const showBadge=slowK<.9&&slowReason; if(badge.hidden===!!showBadge){ badge.hidden=!showBadge; } if(showBadge) badge.textContent=`Slow motion · ${slowReason}`;
+  const ev=eventSoon(); if(ev&&slowAnnounced!==ev.what){ slowAnnounced=ev.what; toast(ev.what); focusEvent(ev.s,ev.what,ev.s.d.catalog+':'+ev.what); } if(!ev&&slowHold<=0) slowAnnounced=null;
+  if(eventView){ eventT+=dt; if(eventT>30||(keys.w||keys.a||keys.s||keys.d||keys.arrowup||keys.arrowdown||keys.arrowleft||keys.arrowright)) eventDismiss(); }
+  slowHold=Math.max(0,slowHold-dt); const slowTarget=(ev||slowHold>0)?Math.min(.2,2000/ypr):1; /* 20% at kyr/s; at Myr/s deeper, so a 20,000-year nebula still gets ten seconds on screen */ slowK+=(slowTarget-slowK)*Math.min(1,dt*(slowTarget<slowK?6:1.5));
+  if(ev) slowReason=ev.what; const badge=$('#slowBadge'); const showBadge=slowK<.9&&slowReason; if(badge.hidden===!!showBadge){ badge.hidden=!showBadge; } if(showBadge) badge.textContent=`Slow motion ${Math.round(slowK*100)>=1?Math.round(slowK*100)+'%':'<1%'} · ${slowReason}`;
   const dy=dt*ypr*slowK; simT+=dy;
   if(dy>0){ setGalaxyRot(simT); toWorld(anchorLocal,_ta).sub(controls.target); controls.target.add(_ta); camera.position.add(_ta); }
   galaxyFade(); perfTick(dt);
@@ -1492,7 +1515,7 @@ function frame(t){
     if(isFinite(L)){ const G=L*.1, age=s.d.age, massive=primaryMass(s)>=8;
       if(age>=L+G){ massive?supernova(s):whiteDwarf(s); if(!stars.includes(s)) continue; }
       else if(age>=L){ const kk=(age-L)/G; gf=1+(massive?3:4)*easeOut(kk); s.suns[0].mat.uniforms.uSwell.value=clamp(kk*1.5);
-        if(!s.d.giant){ s.d.giant=true; s.d.temp=massive?3600:3200; refreshLabel(s); slowEvent(`${s.d.name} is swelling`); toast(`${s.d.name} is swelling into a red ${massive?'supergiant':'giant'}`); discover('giant'); if(sel===s) updatePanel(); }
+        if(!s.d.giant){ s.d.giant=true; s.d.temp=massive?3600:3200; refreshLabel(s); slowEvent(`${s.d.name} is swelling`); focusEvent(s,`Red ${massive?'supergiant':'giant'}: ${s.d.name}`,s.d.catalog+':giant'); toast(`${s.d.name} is swelling into a red ${massive?'supergiant':'giant'}`); discover('giant'); if(sel===s) updatePanel(); }
         const Rg=s.T.r*gf*1.1; for(const p of [...s.planets]) if(p.d.orbit<Rg){ vaporise(s,p); toast(`${s.d.name} swallowed ${p.d.name}`); changed(); } } }
     s.giantF=gf;
     if(doOrbits){ updateDisc(s); updateHZ(s); }
