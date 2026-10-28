@@ -93,6 +93,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   display:flex;gap:6px 18px;flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100% - 32px);
   font-size:12.5px;color:var(--dim);text-align:center;text-shadow:0 0 8px #000}
 #hint span b{color:var(--ink);font-weight:600}
+#slowBadge{color:var(--accent)!important}
 #tour{position:fixed;left:50%;transform:translateX(-50%);bottom:max(18px,calc(env(safe-area-inset-bottom,0px) + 14px));z-index:6;width:min(440px,calc(100% - 32px))}
 .tcard{background:var(--glass);border:1px solid rgba(255,201,138,.45);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .tcard p{margin:0;font-size:14px;line-height:1.45;color:var(--ink)}
@@ -169,6 +170,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <h1>Pocket Universe</h1>
       <p id="counts">—</p>
       <p id="clock">T + 0 d</p>
+      <p id="slowBadge" hidden></p>
     </div>
     <div class="tools">
       <button class="chip" id="timeChip" hidden aria-haspopup="true" aria-expanded="false"><span class="n">TIME</span><span id="timeChipT">mo/s</span></button>
@@ -194,6 +196,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path id="wave" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
         <span class="t" id="soundT">Sound on</span>
       </button>
+      <div class="seg" id="slowSeg" role="group" aria-label="Slow motion for events">
+        <span class="lead">Events</span>
+        <button data-slow="1" aria-pressed="true" title="Ease time to 20% around stellar events at kyr/s and Myr/s">Slow-mo</button>
+        <button data-slow="0" aria-pressed="false" title="Keep the dial speed through events">Real-time</button>
+      </div>
       <div class="seg" id="touchSeg" role="group" aria-label="One finger" hidden>
         <span class="lead">One finger</span>
         <button data-touch="pan" aria-pressed="true">Moves</button>
@@ -570,6 +577,16 @@ const STAR_TYPES={
 /* ---------- the clock: one simulated time, in years ---------- */
 const RATES=[{y:1/365.25,l:'a day per second'},{y:1/12,l:'a month per second'},{y:1,l:'a year per second'},{y:1e3,l:'a thousand years per second'},{y:1e6,l:'a million years per second'}];
 let rateIdx=1, ypr=RATES[1].y, simT=0;
+/* slow motion around stellar events: at kyr/s and Myr/s the clock eases to 20% so the moment can be watched */
+let slowOn=true; try{ slowOn=localStorage.getItem(STORE+'-slow')!=='0'; }catch(e){}
+let slowK=1, slowHold=0, slowReason=null, slowAnnounced=null;
+function slowEvent(label){ if(ypr<1e3||!slowOn) return; slowHold=6; slowReason=label; }
+function eventSoon(){ if(ypr<1e3||!slowOn) return null; const win=ypr*2.5;
+  for(const s of stars){ const L=lifetime(s); if(isFinite(L)){ const G=L*.1, a=s.d.age, massive=primaryMass(s)>=8;
+      if(a<L&&L-a<win) return {s,what:`${s.d.name} is about to swell into a red ${massive?'supergiant':'giant'}`};
+      if(a>=L&&L+G-a<win) return {s,what:massive?(primaryMass(s)>20?`${s.d.name} is about to collapse`:`${s.d.name} is about to go supernova`):`${s.d.name} is about to shed its outer layers`}; }
+    if(feeding(s)&&(s.d.mass-.08)/transferRate(s,s.boundHole)<win) return {s,what:`${s.d.name} is about to be swallowed`}; }
+  return null; }
 function fmtYears(y){ y=Math.max(0,y); if(y<1) return `${Math.max(1,Math.round(y*365.25))} d`; if(y<1e3) return `${Math.round(y).toLocaleString('en-US')} yr`; if(y<1e6) return `${(y/1e3).toPrecision(3).replace(/\.?0+$/,'')} kyr`; if(y<1e9) return `${(y/1e6).toPrecision(3).replace(/\.?0+$/,'')} Myr`; return `${(y/1e9).toPrecision(3).replace(/\.?0+$/,'')} Gyr`; }
 function fmtReal(sec){ if(sec<90) return `${Math.max(1,Math.round(sec))} s`; if(sec<5400) return `${(sec/60).toFixed(sec<600?1:0)} min`; if(sec<172800) return `${(sec/3600).toFixed(1)} h`; if(sec<3.2e7) return `${Math.round(sec/86400)} days`; return 'longer than you'; }
 function realAt(y){ return ypr>0?` · ${fmtReal(y/ypr)} at this speed`:''; }
@@ -826,7 +843,7 @@ function bindStar(s,h){ const dx=s.d.x-h.d.x, dz=s.d.z-h.d.z; s.d.bound={hole:h.
   toast(`${s.d.name} is now bound to ${h.d.name}`); discover('bound'); }
 function bindNearby(h){ for(const s of stars){ if(!s.d.bound&&Math.hypot(s.d.x-h.d.x,s.d.z-h.d.z)<bindRange(h)) bindStar(s,h); } }
 function growHole(h,dm){ h.d.mass=+(h.d.mass+dm).toFixed(1); const nr=1.2+h.d.mass*.1; h.group.scale.setScalar(nr/h.r0); h.r=nr; refreshLabel(h); }
-function disruptStar(s,h){ const a=s.group.position.clone(), b=h.group.position.clone(), mid=a.clone().lerp(b,.5);
+function disruptStar(s,h){ const a=s.group.position.clone(), b=h.group.position.clone(), mid=a.clone().lerp(b,.5); slowEvent(`${h.d.name} tore ${s.d.name} apart`);
   burst(a,s.col,220,10,.8); burst(mid,new THREE.Color(1,.8,.5),200,14,.7); flash(b,h.r*16); shock(b,new THREE.Color(1,.7,.4),80); boom(.8,b);
   dropStream(s); world.remove(s.group); s.labelEl.remove(); s.planets.forEach(killPlanet); stars=stars.filter(x=>x!==s); hitTargets=hitTargets.filter(x=>x!==s.hit);
   if(sel===s||(sel&&sel.star===s)) select(h); growHole(h,s.d.mass*.5);
@@ -848,7 +865,7 @@ function stepStream(s,h,dt){ const st=s.stream, k=s.body.scale.x; _a.copy(h.grou
     st.P[i*3]=x+(Math.random()-.5)*.5; st.P[i*3+1]=(Math.random()-.5)*.5*(1-t); st.P[i*3+2]=z+(Math.random()-.5)*.5;
     st.C[i*3]=col.r+(1.2-col.r)*t; st.C[i*3+1]=col.g+(1.2-col.g)*t; st.C[i*3+2]=col.b+(1.5-col.b)*t; }
   st.g.attributes.position.needsUpdate=true; st.g.attributes.color.needsUpdate=true; }
-function consumeStar(s,h){ const pos=s.group.position.clone(); burst(pos,s.col,160,8,.6); flash(h.group.position,h.r*12); boom(.5,pos);
+function consumeStar(s,h){ const pos=s.group.position.clone(); slowEvent(`${h.d.name} swallowed ${s.d.name}`); burst(pos,s.col,160,8,.6); flash(h.group.position,h.r*12); boom(.5,pos);
   for(const p of [...s.planets]){ stripMoons(p); fling(s,p,1.5); }
   dropStream(s); world.remove(s.group); s.labelEl.remove(); stars=stars.filter(x=>x!==s); hitTargets=hitTargets.filter(x=>x!==s.hit);
   if(sel===s) select(h); growHole(h,s.d.mass); toast(`${h.d.name} swallowed what was left of ${s.d.name}.`); discover('consumed'); changed(); }
@@ -883,7 +900,7 @@ function fling(s,p,kick){ const a=p.angle, v=omega(s,p.d.orbit)*p.d.orbit; kick*
   p.rogue={vel:new THREE.Vector3(-Math.sin(a)*v+Math.cos(a)*kick,0,Math.cos(a)*v+Math.sin(a)*kick),from:s.d.name,origin:s.group.position.clone()};
   rogues.push(p); refreshLabel(p); }
 function supernova(s){
-  const pos=s.group.position.clone(), col=new THREE.Color(1,.85,.7);
+  const pos=s.group.position.clone(), col=new THREE.Color(1,.85,.7); slowEvent(`${s.d.name} went supernova`);
   burst(pos,col,600,42,1.5); shock(pos,new THREE.Color(.8,.9,1),170); flash(pos,110); boom(1,pos);
   const Rv=s.T.r*4.5, lost=[], cores=[], flung=[];
   for(const p of [...s.planets]){ const d=p.d;
@@ -905,7 +922,7 @@ function supernova(s){
   if(hadBinary) setTimeout(()=>toast('Its companion star was thrown clear of the blast.'),3500);
   updatePanel(); changed();
 }
-function whiteDwarf(s){ const d=s.d, pos=s.group.position.clone(), M0=d.mass;
+function whiteDwarf(s){ const d=s.d, pos=s.group.position.clone(), M0=d.mass; slowEvent(`${d.name} shed its outer layers`);
   burst(pos,s.col,320,14,.9); shock(pos,new THREE.Color(.5,1,.85),70); flash(pos,40); chime(s.T.hz*2,3,.06,'D');
   makeRemnant({x:pos.x,z:pos.z,t:0,seed:rand(0,60),kind:1});
   const Mwd=+Math.min(1.3,.45+.1*M0).toFixed(2); const flung=[];
@@ -1281,7 +1298,7 @@ const GUIDE=[
   ['Planting','Tap empty space to plant a star; its class (and so its colour, mass and lifetime) is rolled for you, and about one in seven arrives as a binary pair. Each star is born with a protoplanetary disc that lasts five million years. Switch Plant to Black hole to plant one of those instead.'],
   ['Planets and moons','While the disc lasts, Grow a planet condenses a world from it, up to eight; at kyr/s and faster they condense on their own. Type depends on distance: lava and rocky worlds close in, gas and ice far out. Planets that hug their star are tidally locked. Add up to four moons to any planet. Once the disc is gone, only a captured rogue world can join a system.'],
   ['Naming and notes','Tap the name in the panel to rename a star, planet, moon or black hole. Field notes give day length, gravity, temperature, atmosphere, weather and life; life appears on rocky and ocean worlds inside the green habitable zone. Postcard renders the current view with the notes typeset on it.'],
-  ['Time','The dial sets how much simulated time passes per real second, from a day to a million years. At the two fastest speeds, planets whose year is shorter than a frame are drawn as a smear along their orbit. Space pauses; [ and ] step the dial on a keyboard. The T+ readout shows how much time has passed.'],
+  ['Time','The dial sets how much simulated time passes per real second, from a day to a million years. At kyr/s and Myr/s the clock eases to a fifth of the dial speed just before and after a star changes state, so you can watch it; Events: Real-time turns this off. At the two fastest speeds, planets whose year is shorter than a frame are drawn as a smear along their orbit. Space pauses; [ and ] step the dial on a keyboard. The T+ readout shows how much time has passed.'],
   ['How stars live and die','A star lives ten billion years divided by its mass to the power 2.5: red dwarfs effectively forever, the Sun ten billion years, a blue giant a few million. At the end it swells into a red giant and swallows its inner planets. Under eight solar masses it then sheds a planetary nebula and leaves a white dwarf; above eight it goes supernova, vaporising close planets, flinging the rest loose as rogue worlds, and leaving a pulsar, or a black hole above twenty solar masses.'],
   ['Black holes','A black hole bends nearby orbits and captures stars within range, which then circle it with their whole systems. A star planted inside the tidal radius is torn apart; one a little further out overflows onto the hole as an X-ray binary, shrinking until it is swallowed. Rogue planets, comets and probes that stray too close are lost. Evaporate removes a hole and frees its stars.'],
   ['Comets and impacts','Comets fall through systems on their own. One that hits a planet raises a dust veil that lasts about a decade and can end any life there; one that hits a gas giant leaves a bruise; one in five plunges into the star. At high speeds, impacts are rolled statistically at about one major strike per planet per hundred million years.'],
@@ -1299,10 +1316,12 @@ let mobile=false;
 const RATE_NAMES=['Pause','day/s','mo/s','yr/s','kyr/s','Myr/s'];
 function layout(){ const m=coarse&&Math.min(innerWidth,innerHeight)<700||innerWidth<620; if(m===mobile) return; mobile=m; document.body.classList.toggle('mobile',m);
   const tools=$('.tools'), menu=$('#menuGrid'), tg=$('#timeGrid');
-  if(m){ menu.append($('#overview'),$('#guideBtn'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#touchSeg'),$('#reset'),$('#resetNo')); $('#touchSeg').hidden=!coarse; tg.append($('#timeSeg')); $('#timeChip').hidden=false; $('#menuChip').hidden=false; }
-  else { tools.append($('#seedSeg'),$('#timeSeg'),$('#discBtn'),$('#guideBtn'),$('#shareBtn'),$('#sound'),$('#touchSeg'),$('#overview'),$('#reset'),$('#resetNo'),$('#homeBtn')); $('#touchSeg').hidden=true; $('#timeChip').hidden=true; $('#menuChip').hidden=true; closeSheets(); }
+  if(m){ menu.append($('#overview'),$('#guideBtn'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#slowSeg'),$('#touchSeg'),$('#reset'),$('#resetNo')); $('#touchSeg').hidden=!coarse; tg.append($('#timeSeg')); $('#timeChip').hidden=false; $('#menuChip').hidden=false; }
+  else { tools.append($('#seedSeg'),$('#timeSeg'),$('#discBtn'),$('#guideBtn'),$('#shareBtn'),$('#sound'),$('#slowSeg'),$('#touchSeg'),$('#overview'),$('#reset'),$('#resetNo'),$('#homeBtn')); $('#touchSeg').hidden=true; $('#timeChip').hidden=true; $('#menuChip').hidden=true; closeSheets(); }
   applyCompact(); }
 $('#menuChip').addEventListener('click',()=>openSheet('#menuSheet'));
+document.querySelectorAll('[data-slow]').forEach(b=>{ b.setAttribute('aria-pressed',String((b.dataset.slow==='1')===slowOn)); b.addEventListener('click',()=>{ slowOn=b.dataset.slow==='1'; if(!slowOn){ slowHold=0; }
+  document.querySelectorAll('[data-slow]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); try{ localStorage.setItem(STORE+'-slow',slowOn?'1':'0'); }catch(e){} toast(slowOn?'Time will ease to 20% around stellar events at kyr/s and Myr/s.':'Events play at full dial speed.'); }); });
 document.querySelectorAll('[data-touch]').forEach(b=>{ b.setAttribute('aria-pressed',String((b.dataset.touch==='pan')===oneFingerPan)); b.addEventListener('click',()=>{ oneFingerPan=b.dataset.touch==='pan'; applyTouch(); setHint();
   document.querySelectorAll('[data-touch]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); try{ localStorage.setItem(STORE+'-touch',oneFingerPan?'pan':'spin'); }catch(e){} }); });
 $('#timeChip').addEventListener('click',()=>openSheet('#timeSheet'));
@@ -1450,7 +1469,11 @@ function placeLabel(o,pos,lift,alpha){
 let last=performance.now(), nearT=0, orbitT=0, massT=0;
 function frame(t){
   requestAnimationFrame(frame);
-  const dt=Math.min(.1,(t-last)/1000); last=t; now+=dt; const dy=dt*ypr; simT+=dy;
+  const dt=Math.min(.1,(t-last)/1000); last=t; now+=dt;
+  const ev=eventSoon(); if(ev&&slowAnnounced!==ev.what){ slowAnnounced=ev.what; toast(`Slow motion: ${ev.what}`); if(!sel) select(ev.s); } if(!ev&&slowHold<=0) slowAnnounced=null;
+  slowHold=Math.max(0,slowHold-dt); const slowTarget=(ev||slowHold>0)?.2:1; slowK+=(slowTarget-slowK)*Math.min(1,dt*(slowTarget<slowK?6:1.5));
+  if(ev) slowReason=ev.what; const badge=$('#slowBadge'); const showBadge=slowK<.9&&slowReason; if(badge.hidden===!!showBadge){ badge.hidden=!showBadge; } if(showBadge) badge.textContent=`Slow motion · ${slowReason}`;
+  const dy=dt*ypr*slowK; simT+=dy;
   if(dy>0){ setGalaxyRot(simT); toWorld(anchorLocal,_ta).sub(controls.target); controls.target.add(_ta); camera.position.add(_ta); }
   galaxyFade(); perfTick(dt);
   orbitT+=dt; const doOrbits=orbitT>.4; if(doOrbits){ orbitT=0; if(dy>0) updateCounts(); }
@@ -1469,7 +1492,7 @@ function frame(t){
     if(isFinite(L)){ const G=L*.1, age=s.d.age, massive=primaryMass(s)>=8;
       if(age>=L+G){ massive?supernova(s):whiteDwarf(s); if(!stars.includes(s)) continue; }
       else if(age>=L){ const kk=(age-L)/G; gf=1+(massive?3:4)*easeOut(kk); s.suns[0].mat.uniforms.uSwell.value=clamp(kk*1.5);
-        if(!s.d.giant){ s.d.giant=true; s.d.temp=massive?3600:3200; refreshLabel(s); toast(`${s.d.name} is swelling into a red ${massive?'supergiant':'giant'}`); discover('giant'); if(sel===s) updatePanel(); }
+        if(!s.d.giant){ s.d.giant=true; s.d.temp=massive?3600:3200; refreshLabel(s); slowEvent(`${s.d.name} is swelling`); toast(`${s.d.name} is swelling into a red ${massive?'supergiant':'giant'}`); discover('giant'); if(sel===s) updatePanel(); }
         const Rg=s.T.r*gf*1.1; for(const p of [...s.planets]) if(p.d.orbit<Rg){ vaporise(s,p); toast(`${s.d.name} swallowed ${p.d.name}`); changed(); } } }
     s.giantF=gf;
     if(doOrbits){ updateDisc(s); updateHZ(s); }
