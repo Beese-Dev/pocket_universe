@@ -72,7 +72,10 @@ function omega(s,orbit){ return TAU/periodYears(orbit,s.d.mass); } /* radians pe
 function pull(out,wx,wz,cap){ for(const h of holes){ const dx=h.d.x-wx,dz=h.d.z-wz,d2=dx*dx+dz*dz+4,dd=Math.sqrt(d2); let m=900*h.d.mass/d2; if(m>cap) m=cap; out.x+=dx/dd*m; out.z+=dz/dd*m; } }
 const _loc=new THREE.Vector3();
 function orbitPos(s,p,angle,out){ out.set(Math.cos(angle)*p.d.orbit,0,Math.sin(angle)*p.d.orbit); if(holes.length) pull(out,s.d.x+out.x,s.d.z+out.z,p.d.orbit*.5); return out; }
-function rebuildOrbit(p){ const pts=p.orbitLine.geometry.attributes.position.array; for(let i=0;i<=160;i++){ orbitPos(p.star,p,i/160*TAU,_loc); pts[i*3]=_loc.x; pts[i*3+1]=0; pts[i*3+2]=_loc.z; } p.orbitLine.geometry.attributes.position.needsUpdate=true; }
+function rebuildOrbit(p){ const pts=p.orbitLine.geometry.attributes.position.array; for(let i=0;i<=160;i++){ orbitPos(p.star,p,i/160*TAU,_loc); pts[i*3]=_loc.x; pts[i*3+1]=0; pts[i*3+2]=_loc.z; } p.orbitLine.geometry.attributes.position.needsUpdate=true; p.smearStale=true; }
+/* the smear: at kyr/s and Myr/s a planet's year is shorter than a frame, so it is drawn as a glowing band along its whole orbit */
+function rebuildSmear(p){ const pts=[]; const a=p.orbitLine.geometry.attributes.position.array; for(let i=0;i<160;i++) pts.push(new THREE.Vector3(a[i*3],0,a[i*3+2]));
+  const g=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts,true),160,Math.max(p.d.size*.7,.4),8,true); if(p.smear.geometry) p.smear.geometry.dispose(); p.smear.geometry=g; p.smearStale=false; }
 function rebuildAllOrbits(){ stars.forEach(s=>s.planets.forEach(rebuildOrbit)); }
 
 function planetMaterial(colors,type,seed,clouds,starPos,starCol,growU){
@@ -99,7 +102,8 @@ function makePlanet(s,pd,animate){
   const hit=new THREE.Mesh(HIT,hitMat); hit.scale.setScalar(Math.max(pd.size*1.8,1.6)*HITK); holder.add(hit);
   const og=new THREE.BufferGeometry(); og.setAttribute('position',new THREE.BufferAttribute(new Float32Array(161*3),3));
   const orbitLine=new THREE.Line(og,new THREE.LineBasicMaterial({color:s.col,transparent:true,opacity:.17,depthWrite:false})); s.group.add(orbitLine);
-  const p={kind:'planet',d:pd,star:s,angle:pd.angle,holder,grow,tilt,mesh,mat,atmo,ring,hit,orbitLine,growU,moons:[],born:animate?now:-99};
+  const smear=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:new THREE.Color(pd.colors[1]).lerp(new THREE.Color(1,1,1),.25),transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false})); smear.visible=false; s.group.add(smear);
+  const p={kind:'planet',d:pd,star:s,angle:pd.angle,holder,grow,tilt,mesh,mat,atmo,ring,hit,orbitLine,smear,smearStale:true,growU,moons:[],born:animate?now:-99};
   rebuildOrbit(p); orbitPos(s,p,p.angle,holder.position);
   hit.userData.ref=p; hitTargets.push(hit); makeLabel(p); s.planets.push(p);
   pd.moons.forEach(md=>makeMoon(p,md,false));

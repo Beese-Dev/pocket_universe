@@ -6,7 +6,7 @@ function killMoon(m){ m.labelEl.remove(); hitTargets=hitTargets.filter(x=>x!==m.
 function killPlanet(p){ p.labelEl.remove(); hitTargets=hitTargets.filter(x=>x!==p.hit); p.moons.forEach(killMoon); }
 function stripMoons(p){ if(!p.moons.length) return; burst(lp(p.holder,new THREE.Vector3()),new THREE.Color(.85,.85,.95),40,4,.35);
   for(const m of p.moons){ killMoon(m); p.holder.remove(m.pivot.parent); } p.moons=[]; p.d.moons=[]; }
-function detachPlanet(s,p){ s.group.remove(p.orbitLine); s.planets=s.planets.filter(x=>x!==p); s.d.planets=s.d.planets.filter(x=>x!==p.d); }
+function detachPlanet(s,p){ s.group.remove(p.orbitLine); if(p.smear) s.group.remove(p.smear); s.planets=s.planets.filter(x=>x!==p); s.d.planets=s.d.planets.filter(x=>x!==p.d); }
 function vaporise(s,p){ const w=lp(p.holder,new THREE.Vector3()); burst(w,new THREE.Color(p.d.colors[1]).lerp(new THREE.Color(1,.8,.6),.5),140,9,.6);
   detachPlanet(s,p); s.group.remove(p.holder); killPlanet(p); if(sel===p||(sel&&sel.kind==='moon'&&sel.planet===p)) select(s); }
 function fling(s,p,kick){ const a=p.angle, v=omega(s,p.d.orbit)*p.d.orbit; kick*=40; /* orbital speed in units per year, under the star's mass as it was */
@@ -54,6 +54,7 @@ function capture(p,o,dist){
   p.star=o; p.rogue=null; p.d.orbit=+dist.toFixed(2); p.angle=Math.atan2(p.holder.position.z,p.holder.position.x);
   const og=new THREE.BufferGeometry(); og.setAttribute('position',new THREE.BufferAttribute(new Float32Array(161*3),3));
   p.orbitLine=new THREE.Line(og,new THREE.LineBasicMaterial({color:o.col,transparent:true,opacity:.17,depthWrite:false})); o.group.add(p.orbitLine);
+  if(p.smear){ p.smear.parent&&p.smear.parent.remove(p.smear); o.group.add(p.smear); p.smearStale=true; }
   p.mat.uniforms.uStarPos.value=o.group.position; p.mat.uniforms.uStarCol.value=o.lightCol; p.atmo.material.uniforms.uStarPos.value=o.group.position;
   o.planets.push(p); o.planets.sort((a,b)=>a.d.orbit-b.d.orbit); o.d.planets=o.planets.map(x=>x.d);
   rebuildOrbit(p); refreshLabel(p); toast(`${o.d.name} captured ${p.d.name}`); focusEvent(p,`${o.d.name} captured a rogue world`,p.d.seed+':cap'); chime(o.T.hz*.75,2.2,.05,o.d.cls); discover('captured'); updatePanel(); changed(); }

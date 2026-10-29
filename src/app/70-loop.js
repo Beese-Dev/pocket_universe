@@ -2,7 +2,10 @@
 const tmp=new THREE.Vector3(), wp=new THREE.Vector3(), delta=new THREE.Vector3(), off=new THREE.Vector3();
 function worldPos(o,out){ return o.kind==='planet'?(o.smeared?o.star.group.getWorldPosition(out):o.holder.getWorldPosition(out)):o.kind==='moon'?o.mesh.getWorldPosition(out):o.group.getWorldPosition(out); }
 function spinPlanet(p,dy){ if(dy<=0) return; const revs=365.25*24/(p.d.day||24); p.mesh.rotation.y+=Math.min(TAU*revs*dy,.12); }
-function setSmear(p,on){ if(p.smeared===on) return; p.smeared=on; p.holder.visible=!on; const m=p.orbitLine.material; m.opacity=on?.5:.17; m.color.set(on?p.d.colors[1]:p.star.col); if(on) p.labelEl.style.opacity='0'; }
+function setSmear(p,on){ if(p.smeared===on) return; p.smeared=on; p.holder.visible=!on; const m=p.orbitLine.material; m.opacity=on?.45:.17; m.color.set(on?p.d.colors[1]:p.star.col);
+  if(on&&p.smearStale) rebuildSmear(p); p.smear.visible=on;
+  if(on&&!smearTold){ smearTold=true; toast('At this speed planets orbit faster than frames: each shows as a band along its orbit. Slow the clock to see them again.'); } }
+let smearTold=false;
 function placeLabel(o,pos,lift,alpha){
   const el=o.labelEl; if(alpha<=.01){ if(el.style.opacity!=='0') el.style.opacity='0'; return; }
   tmp.copy(pos); tmp.y+=lift; tmp.project(camera);
@@ -47,7 +50,7 @@ function frame(t){
     s.body.scale.setScalar(k*gf*(s.massK||(s.d.mass0?Math.pow(s.d.mass/s.d.mass0,.6):1)));
     for(const p of s.planets){
       p.angle=(p.angle+omega(s,p.d.orbit)*dy)%TAU; orbitPos(s,p,p.angle,p.holder.position);
-      setSmear(p,ypr>0&&periodYears(p.d.orbit,s.d.mass)/ypr<.6);
+      setSmear(p,ypr>0&&periodYears(p.d.orbit,s.d.mass)/ypr<.6); if(p.smeared&&p.smearStale&&doOrbits) rebuildSmear(p);
       spinPlanet(p,dy); p.mat.uniforms.uTime.value=now;
       if(p.d.dust>0){ p.d.dust=Math.max(0,p.d.dust-dy/10); p.mat.uniforms.uDust.value=p.d.dust; }
       if(ypr>=1e3&&dy>0&&Math.random()<1-Math.exp(-dy/1e8)){ lp(p.holder,wp); impact(null,p,wp); }
@@ -98,7 +101,10 @@ function frame(t){
     s.group.getWorldPosition(_ta); const dS=camera.position.distanceTo(_ta);
     placeLabel(s,_ta,(s.d.binary&&s.d.cls!=='P'&&s.d.cls!=='D'?s.d.binary.sep/2:0)+s.T.r*(s.giantF||1)*1.55,clamp((now-s.born-.6)/.6)*(sel===s?1:clamp((2600-dS)/1200)));
     const sysOn=sel&&(sel===s||sel.star===s);
-    for(const p of s.planets){ if(p.smeared) continue; p.holder.getWorldPosition(wp); const dP=camera.position.distanceTo(wp);
+    for(const p of s.planets){
+      if(p.smeared){ /* label the band at the orbit's far side so smeared worlds stay identifiable */ orbitPos(s,p,Math.PI*.5,_loc); _loc.add(s.group.position); toWorld(_loc,wp); const dP=camera.position.distanceTo(wp);
+        placeLabel(p,wp,p.d.size+.6,(sysOn?.9:clamp((160-dP)/60))*.8); continue; }
+      p.holder.getWorldPosition(wp); const dP=camera.position.distanceTo(wp);
       const vis=sysOn?1:clamp((90-dP)/30); const close=clamp((dP-p.d.size*3)/(p.d.size*3));
       placeLabel(p,wp,p.d.size*(p.d.rings?1.4:1.25)+.4,vis*close*clamp((now-p.born-1.2)/.8));
       for(const m of p.moons){ if(!m.mesh.visible){ m.labelEl.style.opacity='0'; continue; } m.mesh.getWorldPosition(_tb); const dM=camera.position.distanceTo(_tb);
