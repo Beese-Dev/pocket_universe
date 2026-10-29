@@ -1365,6 +1365,8 @@ $('#tourNever').addEventListener('change',e=>{ if(e.target.checked){ tourSave({n
 /* ---------- the daily challenge: one seeded universe for everyone, one billion years, one score ---------- */
 const LEADERBOARD_URL=(location.hostname==='beese-dev.github.io'||location.hostname==='localhost')?'https://pocket-universe-leaderboard.beese-dev.workers.dev':''; /* the shared leaderboard lives on the public site; elsewhere scores stay on this device */
 const DAILY_SPAN=1e9, DAILY_BUDGET={stars:2,holes:1};
+/* one anonymous id per browser, so the leaderboard holds one entry per player whatever name they type */
+function playerId(){ try{ let id=localStorage.getItem(STORE+'-pid'); if(!id){ id=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join(''); localStorage.setItem(STORE+'-pid',id); } return id; }catch(e){ return 'anon'; } }
 let mode='sandbox', daily=null;
 function dailyKey(){ const d=new Date(); return `${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}`; }
 function dailyLabel(k){ return `${k.slice(0,4)}-${k.slice(4,6)}-${k.slice(6,8)}`; }
@@ -1413,11 +1415,11 @@ async function dailySheet(){ const key=dailyKey(), rec=dailyRecord(), best=daily
   on('dStart',()=>dailyStart(true)); on('dFresh',()=>dailyStart(false)); on('dAgain',()=>dailyStart(false)); on('dExit',dailyExit);
   on('dCopy',async()=>{ const t=`Pocket Universe · Daily ${dailyLabel(daily.key)}\nLegacy ${daily.final.toLocaleString('en-US')} · ${Math.round(daily.score.life)} life-Myr · ${daily.score.alive} worlds alive · ${daily.score.disc} discoveries\nhttps://beese-dev.github.io/pocket_universe/`; try{ await navigator.clipboard.writeText(t); toast('Score card copied.'); }catch(e){ toast(t); } });
   if(LEADERBOARD_URL) loadBoard(key); }
-async function loadBoard(key){ const el=$('#dBoard'); try{ const r=await fetch(`${LEADERBOARD_URL}?day=${key}`); const list=await r.json(); const me=dailyBest()[key];
-    el.innerHTML=`<p class="eyebrow" style="margin-bottom:8px">Leaderboard · ${dailyLabel(key)}</p>`+(list.length?`<ol class="board">${list.slice(0,10).map((e,i)=>`<li class="${me===e.score?'me':''}"><span>${i+1}.</span><span>${String(e.name).slice(0,16).replace(/[<>&]/g,'')}</span><span>${(+e.score).toLocaleString('en-US')}</span></li>`).join('')}</ol>`:'<p>No scores yet today. Be first.</p>')
+async function loadBoard(key){ const el=$('#dBoard'); try{ const r=await fetch(`${LEADERBOARD_URL}?day=${key}&pid=${playerId()}`); const list=await r.json(); const me=playerId();
+    el.innerHTML=`<p class="eyebrow" style="margin-bottom:8px">Leaderboard · ${dailyLabel(key)}</p>`+(list.length?`<ol class="board">${list.slice(0,10).map((e,i)=>`<li class="${e.me?'me':''}"><span>${i+1}.</span><span>${String(e.name).slice(0,16).replace(/[<>&]/g,'')}</span><span>${(+e.score).toLocaleString('en-US')}</span></li>`).join('')}</ol>`:'<p>No scores yet today. Be first.</p>')
       +(daily&&daily.done&&!daily.sent?`<div class="field" style="margin-top:10px"><input id="dName" maxlength="16" placeholder="Your name" aria-label="Your name"><button class="btn primary" id="dSend">Submit ${daily.final.toLocaleString('en-US')}</button></div>`:'');
     const b=document.getElementById('dSend'); if(b) b.addEventListener('click',async()=>{ const name=(document.getElementById('dName').value||'Anonymous').trim(); b.disabled=true;
-      try{ await fetch(LEADERBOARD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({day:daily.key,name,score:daily.final,life:Math.round(daily.score.life),alive:daily.score.alive,disc:daily.score.disc})}); daily.sent=true; dailySaveRec(); toast('Score submitted.'); loadBoard(key); }catch(e){ b.disabled=false; toast('Could not reach the leaderboard.'); } });
+      try{ await fetch(LEADERBOARD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({day:daily.key,name,pid:playerId(),score:daily.final,life:Math.round(daily.score.life),alive:daily.score.alive,disc:daily.score.disc})}); daily.sent=true; dailySaveRec(); toast('Score submitted.'); loadBoard(key); }catch(e){ b.disabled=false; toast('Could not reach the leaderboard.'); } });
   }catch(e){ el.innerHTML='<p>The leaderboard is not reachable right now.</p>'; } }
 $('#dailyBtn').addEventListener('click',dailySheet);
 
