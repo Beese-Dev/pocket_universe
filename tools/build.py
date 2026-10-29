@@ -8,7 +8,7 @@ head = '''<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#06050d">
-<meta name="description" content="A pocket universe in your browser: plant stars, grow planets from their discs, launch probes, and watch stars live, die and feed black holes.">
+<meta name="description" content="Starcradle, a small universe in your browser: plant stars, grow planets from their discs, launch probes, and watch stars live, die and feed black holes.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">

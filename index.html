@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#06050d">
-<meta name="description" content="A pocket universe in your browser: plant stars, grow planets from their discs, launch probes, and watch stars live, die and feed black holes.">
+<meta name="description" content="Starcradle, a small universe in your browser: plant stars, grow planets from their discs, launch probes, and watch stars live, die and feed black holes.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Pocket Universe</title>
+<title>Starcradle</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
@@ -201,12 +201,12 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 
 </head>
 <body>
-<canvas id="c" tabindex="0" aria-label="Your pocket universe. Click empty space to plant a star."></canvas>
+<canvas id="c" tabindex="0" aria-label="Starcradle. Click empty space to plant a star."></canvas>
 <div id="labels"></div>
 <div id="ui">
   <div class="top">
     <div class="brand">
-      <h1>Pocket Universe</h1>
+      <h1>Starcradle</h1>
       <p id="counts">—</p>
       <p id="clock">T + 0 d</p>
       <p id="slowBadge" hidden></p>
@@ -1243,7 +1243,7 @@ function postcard(o){ if(!o) return; composer.render(); const src=renderer.domEl
   g.font='19px "Instrument Sans", system-ui, sans-serif'; g.fillStyle='#efe9f7'; let y=H-118;
   if(o.kind==='planet'){ const rows=notesFor(o).rows; for(const k of ['Mean temperature','Atmosphere','Weather','Life']){ const r=rows.find(x=>x[0]===k); if(r&&y<H-40) y=wrapText(g,`${k}: ${r[1]}`,64,y,W-128,26); } }
   else { y=wrapText(g,`Radius ${Math.round(o.d.size*1.15*6371).toLocaleString('en-US')} km · orbits ${planet.d.name} every ${moonPeriodDays(o).toFixed(1)} days.`,64,y,W-128,26); }
-  g.font='500 13px "IBM Plex Mono", ui-monospace, monospace'; g.fillStyle='#a39cbc'; g.textAlign='right'; g.fillText(`POCKET UNIVERSE · T + ${fmtYears(simT).toUpperCase()}`,W-64,H-40); g.textAlign='left';
+  g.font='500 13px "IBM Plex Mono", ui-monospace, monospace'; g.fillStyle='#a39cbc'; g.textAlign='right'; g.fillText(`STARCRADLE · T + ${fmtYears(simT).toUpperCase()}`,W-64,H-40); g.textAlign='left';
   const url=c.toDataURL('image/png'); $('#cardImg').src=url; const sv=$('#cardSave'); sv.href=url; sv.download=`${o.d.name.replace(/[^\w-]+/g,'_')}-postcard.png`; $('#cardMsg').textContent=''; cardBlob=null; c.toBlob(b=>{ cardBlob=b; },'image/png'); openSheet('#cardSheet'); }
 $('#cardCopy').addEventListener('click',async()=>{ const msg=$('#cardMsg'); try{ if(!cardBlob||!navigator.clipboard||!window.ClipboardItem) throw 0; await navigator.clipboard.write([new ClipboardItem({'image/png':cardBlob})]); msg.textContent='Copied to the clipboard.'; }
   catch(e){ msg.textContent='Copying is not available here. Press and hold, or right-click the image, to save it.'; } });
@@ -1326,7 +1326,7 @@ setHint();
 
 /* a first-minute tour, shown once */
 const TOUR1=[
-  {t:'Welcome to your pocket universe. Two systems are already here. Tap anywhere in empty space to plant a star of your own.',done:()=>stars.length>tour.n0},
+  {t:'Welcome to Starcradle, your own small universe. Two systems are already here. Tap anywhere in empty space to plant a star of your own.',done:()=>stars.length>tour.n0},
   {t:'A new star is born with a disc of dust and gas. Tap the star again, or press Grow a planet, to condense a world out of it.',done:()=>countPlanets()>tour.p0},
   {t:'Tap a planet to select it, then open Field notes to read its weather, gravity, and whether anything lives there.',done:()=>notesOpen&&sel&&sel.kind==='planet'},
   {t:'Time runs on the dial at the top. Try Myr/s and watch stars age. The faint green band around each star is where liquid water can exist.',done:()=>rateIdx===4},
@@ -1363,7 +1363,7 @@ $('#tourNext').addEventListener('click',()=>{ const st=tour.list[Math.max(tour.i
 $('#tourSkip').addEventListener('click',()=>tourEnd(false));
 $('#tourNever').addEventListener('change',e=>{ if(e.target.checked){ tourSave({never:true}); toast('Lessons hidden. Replay them any time from the Guide.'); } else tourSave({never:false}); });
 /* ---------- the daily challenge: one seeded universe for everyone, one billion years, one score ---------- */
-const LEADERBOARD_URL=(location.hostname==='beese-dev.github.io'||location.hostname==='localhost')?'https://pocket-universe-leaderboard.beese-dev.workers.dev':''; /* the shared leaderboard lives on the public site; elsewhere scores stay on this device */
+const LEADERBOARD_URL=(/(^|\.)starcradle\.space$/.test(location.hostname)||location.hostname==='beese-dev.github.io'||location.hostname==='localhost')?'https://pocket-universe-leaderboard.beese-dev.workers.dev':''; /* the shared leaderboard lives on the public site; elsewhere scores stay on this device */
 const DAILY_SPAN=1e9, DAILY_BUDGET={stars:2,holes:1};
 /* one anonymous id per browser, so the leaderboard holds one entry per player whatever name they type */
 function playerId(){ try{ let id=localStorage.getItem(STORE+'-pid'); if(!id){ id=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join(''); localStorage.setItem(STORE+'-pid',id); } return id; }catch(e){ return 'anon'; } }
@@ -1413,7 +1413,7 @@ async function dailySheet(){ const key=dailyKey(), rec=dailyRecord(), best=daily
   $('#dailyBody').innerHTML=h; openSheet('#dailySheet');
   const on=(id,f)=>{ const el=document.getElementById(id); if(el) el.addEventListener('click',f); };
   on('dStart',()=>dailyStart(true)); on('dFresh',()=>dailyStart(false)); on('dAgain',()=>dailyStart(false)); on('dExit',dailyExit);
-  on('dCopy',async()=>{ const t=`Pocket Universe · Daily ${dailyLabel(daily.key)}\nLegacy ${daily.final.toLocaleString('en-US')} · ${Math.round(daily.score.life)} life-Myr · ${daily.score.alive} worlds alive · ${daily.score.disc} discoveries\nhttps://beese-dev.github.io/pocket_universe/`; try{ await navigator.clipboard.writeText(t); toast('Score card copied.'); }catch(e){ toast(t); } });
+  on('dCopy',async()=>{ const t=`Starcradle · Daily ${dailyLabel(daily.key)}\nLegacy ${daily.final.toLocaleString('en-US')} · ${Math.round(daily.score.life)} life-Myr · ${daily.score.alive} worlds alive · ${daily.score.disc} discoveries\nhttps://starcradle.space/`; try{ await navigator.clipboard.writeText(t); toast('Score card copied.'); }catch(e){ toast(t); } });
   if(LEADERBOARD_URL) loadBoard(key); }
 async function loadBoard(key){ const el=$('#dBoard'); try{ const r=await fetch(`${LEADERBOARD_URL}?day=${key}&pid=${playerId()}`); const list=await r.json(); const me=playerId();
     el.innerHTML=`<p class="eyebrow" style="margin-bottom:8px">Leaderboard · ${dailyLabel(key)}</p>`+(list.length?`<ol class="board">${list.slice(0,10).map((e,i)=>`<li class="${e.me?'me':''}"><span>${i+1}.</span><span>${String(e.name).slice(0,16).replace(/[<>&]/g,'')}</span><span>${(+e.score).toLocaleString('en-US')}</span></li>`).join('')}</ol>`:'<p>No scores yet today. Be first.</p>')

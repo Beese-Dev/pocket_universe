@@ -1,8 +1,8 @@
-# Pocket Universe
+# Starcradle
 
-A pocket universe that runs in the browser. Plant stars, grow planets out of their protoplanetary discs, name worlds and moons, launch probes, and watch stars live, die and feed black holes on a real clock, from a day per second up to a million years per second.
+Starcradle is a small universe that runs in the browser. Plant stars, grow planets out of their protoplanetary discs, name worlds and moons, launch probes, and watch stars live, die and feed black holes on a real clock, from a day per second up to a million years per second.
 
-Play it: the page is a single `index.html` with no build step. Open it locally or host it on any static site (it is set up for GitHub Pages).
+Play it at [starcradle.space](https://starcradle.space/). The page is a single `index.html` with no build step. Open it locally or host it on any static site (it is set up for GitHub Pages).
 
 ## What is in it
 

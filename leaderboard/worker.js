@@ -10,7 +10,7 @@
  *   3. wrangler deploy
  * Then put the worker's URL into LEADERBOARD_URL in the game.
  */
-const ORIGINS = ['https://beese-dev.github.io'];               // who may submit scores
+const ORIGINS = ['https://starcradle.space', 'https://www.starcradle.space', 'https://beese-dev.github.io'];               // who may submit scores
 const MAX_SCORE = 200000;                                       // sanity cap: 1 Gyr × 8 planets × ~2 stars is well under this
 const headers = o => ({ 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': o, 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Cache-Control': 'no-store' });
 
