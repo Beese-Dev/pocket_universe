@@ -1363,7 +1363,7 @@ $('#tourNext').addEventListener('click',()=>{ const st=tour.list[Math.max(tour.i
 $('#tourSkip').addEventListener('click',()=>tourEnd(false));
 $('#tourNever').addEventListener('change',e=>{ if(e.target.checked){ tourSave({never:true}); toast('Lessons hidden. Replay them any time from the Guide.'); } else tourSave({never:false}); });
 /* ---------- the daily challenge: one seeded universe for everyone, one billion years, one score ---------- */
-const LEADERBOARD_URL=''; /* set to the score service's URL to enable the shared leaderboard; empty keeps scores on this device */
+const LEADERBOARD_URL=(location.hostname==='beese-dev.github.io'||location.hostname==='localhost')?'https://pocket-universe-leaderboard.beese-dev.workers.dev':''; /* the shared leaderboard lives on the public site; elsewhere scores stay on this device */
 const DAILY_SPAN=1e9, DAILY_BUDGET={stars:2,holes:1};
 let mode='sandbox', daily=null;
 function dailyKey(){ const d=new Date(); return `${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}`; }
