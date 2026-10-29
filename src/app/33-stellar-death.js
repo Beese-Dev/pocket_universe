@@ -59,12 +59,15 @@ function capture(p,o,dist){
   o.planets.push(p); o.planets.sort((a,b)=>a.d.orbit-b.d.orbit); o.d.planets=o.planets.map(x=>x.d);
   rebuildOrbit(p); refreshLabel(p); toast(`${o.d.name} captured ${p.d.name}`); focusEvent(p,`${o.d.name} captured a rogue world`,p.d.seed+':cap'); chime(o.T.hz*.75,2.2,.05,o.d.cls); discover('captured'); updatePanel(); changed(); }
 function stepRogue(p,dy){ const r=p.rogue, h=p.holder.position;
-  _v.copy(p.star.group.position).sub(h); const d2=_v.lengthSq()+1; _v.normalize().multiplyScalar(GM_UNITS*p.star.d.mass/d2*dy); r.vel.add(_v);
+  /* every star and black hole pulls on a free world, so stripped planets can be captured by the hole or slung away */
+  for(const s of stars){ _v.copy(s.group.position).sub(h); const d2=_v.lengthSq()+1; _v.normalize().multiplyScalar(GM_UNITS*s.d.mass/d2*dy); r.vel.add(_v); }
+  for(const bh of holes){ _v.copy(bh.group.position).sub(h); const d2=_v.lengthSq()+1; _v.normalize().multiplyScalar(GM_UNITS*bh.d.mass/d2*dy); r.vel.add(_v); }
   h.addScaledVector(r.vel,dy); spinPlanet(p,dy); p.mat.uniforms.uTime.value=now;
   for(const bh of holes){ if(h.distanceTo(bh.group.position)<bh.r*3.2){ burst(h,new THREE.Color(p.d.colors[1]),120,8,.6); flash(bh.group.position,bh.r*8); toast(`${bh.d.name} tore ${p.d.name} apart`); growHole(bh,.1); removeRogue(p); return false; } }
   for(const o of stars){ if(o===p.star) continue; const dist=h.distanceTo(o.group.position);
     if(dist<outerR(o)+9&&dist>innerR(o)+2&&o.planets.length<8&&r.vel.length()<omega(o,dist)*dist*1.9){ capture(p,o,dist); return false; } }
-  const far=h.distanceTo(r.origin); if(far>210){ toast(`${p.d.name} drifted into interstellar space`); removeRogue(p); return false; }
+  let near=1e9; for(const s of stars) near=Math.min(near,h.distanceTo(s.group.position)); for(const bh of holes) near=Math.min(near,h.distanceTo(bh.group.position));
+  const far=Math.min(h.distanceTo(r.origin),near); if(far>210){ toast(`${p.d.name} drifted into interstellar space`); removeRogue(p); return false; }
   p.grow.scale.setScalar(clamp((210-far)/45)); return true; }
 const REM_GEO=new THREE.SphereGeometry(1,64,48);
 function remLife(d){ return d.kind===1?2e4:5e4; }

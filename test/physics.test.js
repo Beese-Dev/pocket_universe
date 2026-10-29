@@ -43,3 +43,13 @@ test('a moon at 2.4 units around an Earth-mass world takes about 27 days', () =>
   const days = moonPeriodYears({ size: 1, type: 'rocky' }, { orbit: 2.4 }) * 365.25;
   assert.ok(Math.abs(days - 27.3) < 0.1, days);
 });
+
+import { hillRadius, stableLimit } from '../src/lib/physics.js';
+test('Hill radius: a 10-solar-mass hole 60 units from a Sun-like star leaves about 19 units bound, 9.7 stable', () => {
+  assert.ok(Math.abs(hillRadius(60, 1, 10) - 19.3) < 0.2);
+  assert.ok(Math.abs(stableLimit(60, 1, 10) - 9.66) < 0.1);
+});
+test('the Hill radius shrinks as the hole gets closer or heavier', () => {
+  assert.ok(hillRadius(30, 1, 10) < hillRadius(60, 1, 10));
+  assert.ok(hillRadius(60, 1, 40) < hillRadius(60, 1, 10));
+});

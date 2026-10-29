@@ -30,7 +30,7 @@ function updatePanel(){ applyCompact();
     sw.style.color=s.T.col; $('#pKind').textContent=`Star · ${d.catalog}`;
     const fate=`<div><dt>Fate</dt><dd id="pFate">${fateText(s)}</dd></div>`+(hasDisc(s)?stat('Disc',`dissipates in ${fmtYears(DISC_LIFE-d.age)}`):'');
     const cls=d.cls==='P'?'Pulsar':d.cls==='D'?'White dwarf':d.giant?`${d.cls} · red ${primaryMass(s)>=8?'supergiant':'giant'}`:d.binary?`${d.cls}+${d.binary.cls} · binary`:`${d.cls} · ${s.T.desc}`;
-    pStats.innerHTML=stat('Class',cls)+stat('Surface',`${d.temp.toLocaleString('en-US')} K`)+stat('Mass',`${d.mass.toFixed(2)} M☉`)+stat('Planets',`${s.planets.length} of 8`)+`<div><dt>Age</dt><dd id="pAge">${fmtYears(d.age)}</dd></div>`+fate;
+    pStats.innerHTML=stat('Class',cls)+stat('Surface',`${d.temp.toLocaleString('en-US')} K`)+stat('Mass',`${d.mass.toFixed(2)} M☉`)+stat('Planets',`${s.planets.length} of 8`)+`<div><dt>Age</dt><dd id="pAge">${fmtYears(d.age)}</dd></div>`+fate+(isFinite(s.tidal||Infinity)&&s.tidal<outerR(s)*2.5?stat('Tidal limit',`${(s.tidal/15).toFixed(2)} AU`):'');
     pPrimary.textContent=s.planets.length>=8?'System is full':hasDisc(s)?'Grow a planet':'Disc dissipated'; pPrimary.disabled=s.planets.length>=8||!hasDisc(s);
     pSecondary.textContent='See whole system';
   } else if(sel.kind==='hole'){ const h=sel,d=h.d; const n=stars.filter(s=>s.boundHole===h).length;

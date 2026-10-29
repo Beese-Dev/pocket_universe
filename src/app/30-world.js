@@ -52,6 +52,8 @@ function makeStar(d,animate){
   const disc=new THREE.Mesh(new THREE.RingGeometry(dIn,dr,160,1),new THREE.ShaderMaterial({uniforms:{uIn:{value:dIn},uOut:{value:dr},uT:{value:0},uSeed:{value:d.seed},uGap:{value:new Float32Array(8)},uN:{value:0},uAlpha:{value:1}},
     vertexShader:RING_VS,fragmentShader:PDISC_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide}));
   disc.rotation.x=-Math.PI/2; disc.renderOrder=-1; disc.visible=false; group.add(disc); s.disc=disc;
+  const hillRing=new THREE.Line(new THREE.BufferGeometry().setFromPoints(Array.from({length:129},(_,i)=>new THREE.Vector3(Math.cos(i/128*TAU),0,Math.sin(i/128*TAU)))),new THREE.LineDashedMaterial({color:0xff9a4a,transparent:true,opacity:.45,dashSize:.6,gapSize:.5,depthWrite:false}));
+  hillRing.computeLineDistances(); hillRing.visible=false; group.add(hillRing); s.hillRing=hillRing;
   hit.userData.ref=s; hitTargets.push(hit); makeLabel(s); stars.push(s);
   d.planets.forEach(pd=>makePlanet(s,pd,false));
   return s;
@@ -69,9 +71,17 @@ function outerR(s){ const l=s.planets[s.planets.length-1]; return l? l.d.orbit+(
 function omega(s,orbit){ return TAU/periodYears(orbit,s.d.mass); } /* radians per year */
 
 /* gravity of black holes: a sideways pull on anything orbiting nearby */
-function pull(out,wx,wz,cap){ for(const h of holes){ const dx=h.d.x-wx,dz=h.d.z-wz,d2=dx*dx+dz*dz+4,dd=Math.sqrt(d2); let m=900*h.d.mass/d2; if(m>cap) m=cap; out.x+=dx/dd*m; out.z+=dz/dd*m; } }
+/* black holes no longer shift orbits sideways; see tidalLimit() for what they really do */
 const _loc=new THREE.Vector3();
-function orbitPos(s,p,angle,out){ out.set(Math.cos(angle)*p.d.orbit,0,Math.sin(angle)*p.d.orbit); if(holes.length) pull(out,s.d.x+out.x,s.d.z+out.z,p.d.orbit*.5); return out; }
+function orbitPos(s,p,angle,out){ out.set(Math.cos(angle)*p.d.orbit,0,Math.sin(angle)*p.d.orbit); return out; }
+/* tides from black holes: a star keeps only the planets inside its stability limit (half its Hill radius), which shrinks as a hole gets nearer or heavier */
+function tidalLimit(s){ let lim=Infinity, by=null; for(const h of holes){ const d=Math.hypot(s.d.x-h.d.x,s.d.z-h.d.z); const L=stableLimit(d,s.d.mass,h.d.mass); if(L<lim){ lim=L; by=h; } } return {lim,by}; }
+function updateTidal(s){ const {lim,by}=tidalLimit(s); s.tidal=lim; const show=isFinite(lim)&&lim<outerR(s)*2.5; s.hillRing.visible=show; if(show){ s.hillRing.scale.setScalar(lim); }
+  if(!isFinite(lim)||ypr<=0) return;
+  for(const p of [...s.planets]){ if(p.d.orbit>lim){ stripMoons(p); const sv=starVelocity(s,_sv); fling(s,p,0); p.rogue.vel.add(sv); p.rogue.from=s.d.name;
+    toast(`${by.d.name}'s tides tore ${p.d.name} away from ${s.d.name}`); discover('stripped'); changed(); } } }
+const _sv=new THREE.Vector3();
+function starVelocity(s,out){ out.set(0,0,0); if(!s.d.bound||!s.boundHole) return out; const b=s.d.bound,h=s.boundHole; const v=TAU/periodYears(b.r,h.d.mass+s.d.mass)*b.r; return out.set(-Math.sin(b.angle)*v,0,Math.cos(b.angle)*v); }
 function rebuildOrbit(p){ const pts=p.orbitLine.geometry.attributes.position.array; for(let i=0;i<=160;i++){ orbitPos(p.star,p,i/160*TAU,_loc); pts[i*3]=_loc.x; pts[i*3+1]=0; pts[i*3+2]=_loc.z; } p.orbitLine.geometry.attributes.position.needsUpdate=true; p.smearStale=true; }
 /* the smear: at kyr/s and Myr/s a planet's year is shorter than a frame, so it is drawn as a glowing band along its whole orbit */
 function rebuildSmear(p){ const pts=[]; const a=p.orbitLine.geometry.attributes.position.array; for(let i=0;i<160;i++) pts.push(new THREE.Vector3(a[i*3],0,a[i*3+2]));

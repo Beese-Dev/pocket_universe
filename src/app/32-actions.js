@@ -26,6 +26,7 @@ function growPlanet(s,auto){
   for(const o of stars){ if(o===s) continue;
     if(s.group.position.distanceTo(o.group.position)-outerR(o)<orbit+size*2.5+8){ toast(`No room left: ${o.d.name} is too close`); updatePanel(); return; } }
   for(const h of holes){ if(s.group.position.distanceTo(h.group.position)<orbit+h.r*5+4){ toast(`No room left: ${h.d.name} is too close`); updatePanel(); return; } }
+  if(s.tidal!==undefined&&orbit>s.tidal){ toast(`Beyond ${s.d.name}'s tidal limit: a black hole's gravity would strip that orbit`); updatePanel(); return; }
   const pd=genPlanet(s,orbit,type==='gas'?Math.max(size,1.7):Math.min(size,1.15),type);
   s.d.planets.push(pd); const p=makePlanet(s,pd,true);
   const wp=lp(p.holder,new THREE.Vector3());

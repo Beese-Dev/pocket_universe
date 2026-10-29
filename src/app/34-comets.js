@@ -25,7 +25,7 @@ function stepComet(c,dy){
   c.th+=Math.min(h/(r*r)*dy,.5); if(c.th>c.thMax) return false;
   const rr=p/(1+c.e*Math.cos(c.th));
   _v.set(rr*Math.cos(c.th),0,rr*Math.sin(c.th)).applyQuaternion(c.quat).add(c.star.group.position);
-  if(holes.length){ _w.set(0,0,0); pull(_w,_v.x,_v.z,25); _v.add(_w); for(const hh of holes){ if(_v.distanceTo(hh.group.position)<hh.r*1.6){ burst(_v,new THREE.Color(1,.8,.6),60,6,.6); return false; } } }
+  if(holes.length){ for(const hh of holes){ if(_v.distanceTo(hh.group.position)<hh.r*1.6){ burst(_v,new THREE.Color(1,.8,.6),60,6,.6); return false; } } }
   c.pos.copy(_v); c.head.position.copy(_v);
   if(dy>0){ const s=c.star; const sr=(s.d.binary&&s.d.cls!=='P'&&s.d.cls!=='D'?s.d.binary.sep/2:0)+s.T.r*(s.giantF||1)*1.05;
     if(_v.distanceTo(s.group.position)<sr){ sungraze(c,s); return false; }

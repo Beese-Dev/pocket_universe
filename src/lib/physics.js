@@ -21,3 +21,7 @@ export function unbindsPlanets(massBefore,massAfter){ return massAfter<massBefor
 export function whiteDwarfMass(M0){ return +Math.min(1.3,.45+.1*M0).toFixed(2); }
 /** Tidal radius of a star near a black hole: a few stellar radii, scaled by the cube root of the mass ratio. */
 export function tidalRadius(starR,starM,holeM,holeR){ return starR*Math.cbrt(holeM/Math.max(starM,.1))*1.6+holeR; }
+/** Hill radius of a star of mass Ms at distance d from a perturber of mass Mp: planets beyond it are not bound to the star. */
+export function hillRadius(d,Ms,Mp){ return d*Math.cbrt(Ms/(3*Math.max(Mp,1e-6))); }
+/** Long-term stable orbit limit: about half the Hill radius for prograde orbits. */
+export function stableLimit(d,Ms,Mp){ return .5*hillRadius(d,Ms,Mp); }

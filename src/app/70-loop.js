@@ -43,7 +43,7 @@ function frame(t){
         if(!s.d.giant){ s.d.giant=true; s.d.temp=massive?3600:3200; refreshLabel(s); slowEvent(`${s.d.name} is swelling`); focusEvent(s,`Red ${massive?'supergiant':'giant'}: ${s.d.name}`,s.d.catalog+':giant'); toast(`${s.d.name} is swelling into a red ${massive?'supergiant':'giant'}`); discover('giant'); if(sel===s) updatePanel(); }
         const Rg=s.T.r*gf*1.1; for(const p of [...s.planets]) if(p.d.orbit<Rg){ vaporise(s,p); toast(`${s.d.name} swallowed ${p.d.name}`); changed(); } } }
     s.giantF=gf;
-    if(doOrbits){ updateDisc(s); updateHZ(s); for(const p of s.planets) p.alive=!!speciesOf(p); }
+    if(doOrbits){ updateDisc(s); updateHZ(s); if(holes.length||s.hillRing.visible) updateTidal(s); for(const p of s.planets) p.alive=!!speciesOf(p); }
     if(hasDisc(s)&&dy>0&&s.planets.length<s.d.discN&&s.d.age>2e5&&Math.random()<1-Math.exp(-dy/(DISC_LIFE*.5/s.d.discN))) growPlanet(s,true);
     if(a<1){ k=reduce?1:Math.max(.001,easeBack(clamp(a))); s.suns.forEach(sun=>{ sun.corona.material.opacity=Math.min(1,.8+(1-a)); sun.corona.scale.setScalar(sun.T.r*7*(1+(1-a)*1.6)); }); }
     else { const farK=Math.max(1,camera.position.distanceTo(s.group.getWorldPosition(_tb))/140); s.suns.forEach(sun=>{ const fl=sun.flare||0; sun.corona.material.opacity=.8+fl*.4; sun.corona.scale.setScalar(sun.T.r*7*gf*farK*(1+.035*Math.sin(now*1.2+s.d.seed)+fl*.9)); }); }
