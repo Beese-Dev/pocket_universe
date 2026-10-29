@@ -1,9 +1,9 @@
-# Pocket Universe: Game Design Roadmap
+# Starcradle: Game Design Roadmap
 
-2026-10-28. The living version of this document is the Claude doc shared with the team; this copy tracks it.
+2026-10-28. Renamed from Pocket Universe to Starcradle on 2026-10-28; live at starcradle.space. The living version of this document is the Claude doc shared with the team; this copy tracks it.
 
 ## Why
-Players call Pocket Universe educational rather than a game because it offers plenty to watch and little to want. The physics, rendering and realism rules are done; what is missing is a reason to act and something to lose. A game needs goals, scarcity, consequences and skills. This roadmap adds all four without breaking the rule that anything that happens in the game would happen in reality.
+Players call Starcradle (formerly Pocket Universe) educational rather than a game because it offers plenty to watch and little to want. The physics, rendering and realism rules are done; what is missing is a reason to act and something to lose. A game needs goals, scarcity, consequences and skills. This roadmap adds all four without breaking the rule that anything that happens in the game would happen in reality.
 
 ## Where we are
 | System | What exists | Game use |
