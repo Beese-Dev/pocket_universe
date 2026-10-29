@@ -109,7 +109,7 @@ let mobile=false;
 const RATE_NAMES=['Pause','day/s','mo/s','yr/s','kyr/s','Myr/s'];
 function layout(){ const m=coarse&&Math.min(innerWidth,innerHeight)<700||innerWidth<620; if(m===mobile) return; mobile=m; document.body.classList.toggle('mobile',m);
   const tools=$('.tools'), menu=$('#menuGrid'), tg=$('#timeGrid');
-  if(m){ menu.append($('#overview'),$('#dailyBtn'),$('#atlasBtn'),$('#guideBtn'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#slowSeg'),$('#touchSeg'),$('#reset'),$('#resetNo')); $('#touchSeg').hidden=!coarse; tg.append($('#timeSeg')); $('#timeChip').hidden=false; $('#menuChip').hidden=false; }
+  if(m){ tools.prepend($('#dailyBtn')); menu.append($('#overview'),$('#atlasBtn'),$('#guideBtn'),$('#discBtn'),$('#shareBtn'),$('#sound'),$('#slowSeg'),$('#touchSeg'),$('#reset'),$('#resetNo')); $('#touchSeg').hidden=!coarse; tg.append($('#timeSeg')); $('#timeChip').hidden=false; $('#menuChip').hidden=false; }
   else { tools.append($('#seedSeg'),$('#timeSeg'),$('#discBtn'),$('#dailyBtn'),$('#atlasBtn'),$('#guideBtn'),$('#shareBtn'),$('#sound'),$('#slowSeg'),$('#touchSeg'),$('#overview'),$('#reset'),$('#resetNo'),$('#homeBtn')); $('#touchSeg').hidden=true; $('#timeChip').hidden=true; $('#menuChip').hidden=true; closeSheets(); }
   applyCompact(); }
 $('#menuChip').addEventListener('click',()=>openSheet('#menuSheet'));
