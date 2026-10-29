@@ -111,5 +111,5 @@ function clearUniverse(){
   holes.forEach(h=>{ world.remove(h.group); h.labelEl.remove(); });
   comets.forEach(c=>c.dispose()); comets=[];
   rogues.forEach(p=>{ world.remove(p.holder); killPlanet(p); }); remnants.forEach(r=>{ world.remove(r.mesh); r.mat.dispose(); }); probes.forEach(pr=>world.remove(pr.head,pr.trail)); probes=[];
-  stars=[]; holes=[]; rogues=[]; remnants=[]; hitTargets=[]; select(null); catalogN=1; changed();
+  stars=[]; holes=[]; rogues=[]; remnants=[]; hitTargets=[]; select(null); catalogN=1; legacy=0; changed();
 }

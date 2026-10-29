@@ -1,5 +1,5 @@
 /* ---------- selection + panel ---------- */
-const panel=$('#panel'), pName=$('#pName'), pStats=$('#pStats'), pNotes=$('#pNotes'), pNotesBtn=$('#pNotesBtn'), pProbe=$('#pProbe'), pCard=$('#pCard'), pPrimary=$('#pPrimary'), pSecondary=$('#pSecondary'), hint=$('#hint');
+const panel=$('#panel'), pName=$('#pName'), pStats=$('#pStats'), pNotes=$('#pNotes'), pNotesBtn=$('#pNotesBtn'), pProbe=$('#pProbe'), pCard=$('#pCard'), pEvac=$('#pEvac'), pPrimary=$('#pPrimary'), pSecondary=$('#pSecondary'), hint=$('#hint');
 let notesOpen=false;
 function minDistFor(o){ return !o?3:o.kind==='star'?o.T.r*1.6*(o.giantF||1):o.kind==='hole'?o.r*2.2:o.d.size*1.22; }
 function moonPeriodDays(m){ return moonPeriodYears(m.planet,m.d)*365.25; }
@@ -27,7 +27,7 @@ function updatePanel(){ applyCompact();
   const sw=$('#pSw');
   if(document.activeElement!==pName) pName.value=sel.d.name;
   pNotesBtn.hidden=sel.kind!=='planet'; pNotes.hidden=!(sel.kind==='planet'&&notesOpen); pNotesBtn.setAttribute('aria-expanded',String(notesOpen));
-  pProbe.hidden=!((sel.kind==='planet'&&!sel.rogue&&!sel.smeared)||(sel.kind==='moon'&&!sel.planet.smeared)); pCard.hidden=!(sel.kind==='planet'||sel.kind==='moon');
+  pProbe.hidden=!((sel.kind==='planet'&&!sel.rogue&&!sel.smeared)||(sel.kind==='moon'&&!sel.planet.smeared)); pCard.hidden=!(sel.kind==='planet'||sel.kind==='moon'); pEvac.hidden=!(sel.kind==='planet'&&!sel.rogue&&(sel.d.stage||0)>=5);
   if(sel.kind==='star'){ const s=sel,d=s.d;
     sw.style.color=s.T.col; $('#pKind').textContent=`Star · ${d.catalog}`;
     const fate=`<div><dt>Fate</dt><dd id="pFate">${fateText(s)}</dd></div>`+(hasDisc(s)?stat('Disc',`dissipates in ${fmtYears(DISC_LIFE-d.age)}`):'');
@@ -52,7 +52,7 @@ function updatePanel(){ applyCompact();
   } else { const p=sel,d=p.d,au=d.orbit/15,yr=periodYears(d.orbit,p.star.d.mass);
     sw.style.color=d.colors[1]; $('#pKind').textContent=planetKind(p)+(p.smeared?' · too fast to see':'');
     pStats.innerHTML=stat('Orbit',`${au.toFixed(2)} AU`)+stat('Year',yr<2?`${Math.round(yr*365.25).toLocaleString('en-US')} days`:`${yr<100?yr.toFixed(1):Math.round(yr).toLocaleString('en-US')} years`)+
-      stat('Radius',`${(d.type==='gas'?d.size*4.4:d.size*1.15).toFixed(2)} R⊕`)+stat('Moons',`${p.moons.length}${d.rings?' · ringed':''}`);
+      stat('Radius',`${(d.type==='gas'?d.size*4.4:d.size*1.15).toFixed(2)} R⊕`)+stat('Moons',`${p.moons.length}${d.rings?' · ringed':''}`)+((d.stage||0)>0||p.alive?stat('Life',`${stageOf(d.stage||0).name}${(d.stage||0)>=3?' · tech '+techLevel(d.lifeAge):''}${d.lifeAge?' · '+fmtYears(d.lifeAge):''}`):'');
     if(notesOpen) pNotes.innerHTML=notesFor(p).rows.map(([k,v])=>`<div><dt>${k}</dt><dd class="${k==='Life'?'sp':''}">${v}</dd></div>`).join('');
     pPrimary.textContent=p.moons.length>=4?'Moon limit reached':'Add a moon'; pPrimary.disabled=p.moons.length>=4;
     pSecondary.textContent='Fly down';
@@ -63,6 +63,8 @@ pPrimary.addEventListener('click',()=>{ if(!sel) return; following=true; if(sel.
 pSecondary.addEventListener('click',()=>{ if(!sel) return; following=true; if(sel.kind==='star') desiredDist=Math.max(42,outerR(sel)*2.6); else if(sel.kind==='hole') removeHole(sel); else if(sel.kind==='moon') select(sel.planet); else if(sel.rogue) select(sel.star); else flyDown(sel); });
 pProbe.addEventListener('click',()=>{ if(!sel||(sel.kind!=='planet'&&sel.kind!=='moon')) return; probeFrom=sel; toast(`Probe armed on ${sel.d.name}. Tap a destination: any star, planet, moon or black hole.`); hint.hidden=false; hint.innerHTML='<span><b>Tap a destination</b> for the probe · tap empty space to cancel</span>'; });
 pCard.addEventListener('click',()=>postcard(sel));
+pEvac.addEventListener('click',()=>{ if(!sel||sel.kind!=='planet') return; probeFrom=sel; arkMode=true; toast(`Ark ready on ${sel.d.name}. Tap a habitable world to settle; they bring their civilisation with them.`); hint.hidden=false; hint.innerHTML='<span><b>Tap a destination world</b> for the ark · tap empty space to cancel</span>'; });
+let arkMode=false;
 pNotesBtn.addEventListener('click',()=>{ notesOpen=!notesOpen; panelCompact=false; updatePanel(); });
 $('#pClose').addEventListener('click',()=>select(null));
 pName.addEventListener('input',()=>{ if(!sel) return; tourFlags.renamed=true; const v=pName.value.trim(); sel.d.name=v||sel.d.name; refreshLabel(sel); changed(); });

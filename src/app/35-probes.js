@@ -13,7 +13,7 @@ function makeProbe(pd){
   world.add(head,trail); const pr={d:pd,head,trail,P,N,filled:0,pos:new THREE.Vector3(pd.x,0,pd.z),vel:new THREE.Vector3(pd.vx,0,pd.vz),g};
   head.position.copy(pr.pos); probes.push(pr); return pr; }
 function dropProbe(pr){ world.remove(pr.head,pr.trail); pr.g.dispose(); probes=probes.filter(x=>x!==pr); }
-function launchProbe(o,target){
+function launchProbe(o,target,ark){
   const p=o.kind==='moon'?o.planet:o;
   const from=lp(targetObj(o),new THREE.Vector3()), to=lp(targetObj(target),new THREE.Vector3());
   const dir=to.clone().sub(from); const dist=dir.length(); dir.normalize();
@@ -21,8 +21,8 @@ function launchProbe(o,target){
   /* a moon is a cheaper launch site: no deep planetary gravity well to climb out of */
   const dv=Math.max(vOrb*(o.kind==='moon'?2.0:2.2),Math.sqrt(2*GM_UNITS*s.d.mass/Math.max(p.d.orbit,1))*(o.kind==='moon'?1.05:1.15));
   const vel=orbital.add(dir.multiplyScalar(dv));
-  const pd={x:from.x,z:from.z,vx:vel.x,vz:vel.z,from:o.d.name,tk:target.kind,tn:target.d.name,t0:simT,d0:dist,ox:from.x,oz:from.z,name:`${o.d.name} probe`};
-  makeProbe(pd); tourFlags.probe=true; chime(1320,1.6,.05,'A'); toast(`${pd.name} launched toward ${target.d.name} at ${(dv/15*4.74).toFixed(0)} km/s`); discover('probe'); changed(); }
+  const pd={x:from.x,z:from.z,vx:vel.x,vz:vel.z,from:o.d.name,tk:target.kind,tn:target.d.name,t0:simT,d0:dist,ox:from.x,oz:from.z,name:ark?`${o.d.name} ark`:`${o.d.name} probe`,ark:!!ark,lifeAge:ark?o.d.lifeAge:0};
+  makeProbe(pd); if(!ark) tourFlags.probe=true; chime(1320,1.6,.05,'A'); toast(`${pd.name} launched toward ${target.d.name} at ${(dv/15*4.74).toFixed(0)} km/s`); discover(ark?'ark':'probe'); changed(); }
 function stepProbe(pr,dy){ const d=pr.d; const target=findTarget(d.tk,d.tn);
   if(!target){ toast(`${d.name} lost its destination`); dropProbe(pr); return false; }
   const to=lp(targetObj(target),_ta);
@@ -47,6 +47,10 @@ function stepProbe(pr,dy){ const d=pr.d; const target=findTarget(d.tk,d.tn);
   if(Math.hypot(pr.pos.x-d.ox,pr.pos.z-d.oz)>d.d0*3.5+200){ toast(`${d.name} missed and is lost to interstellar space`); dropProbe(pr); return false; }
   return true; }
 function probeArrives(pr,target){ const d=pr.d; burst(pr.pos,new THREE.Color(.7,1,.85),50,3,.4); chime(1760,2,.05,'A'); dropProbe(pr);
+  if(d.civ){ toast(`${d.name} reached ${target.d.name}`); return; }
+  if(d.ark){ const t=target; if(t.kind==='planet'&&t.alive&&!t.d.scorched&&!t.d.extinct){ t.d.lifeAge=Math.max(t.d.lifeAge||0,Math.min(d.lifeAge||1.5e9,2.5e9)); t.d.sinceExt=1e12; t.d.stage=stageFor(t.d.lifeAge,t.d.sinceExt); t.mat.uniforms.uCiv.value=stageOf(t.d.stage).lights; refreshLabel(t);
+      toast(`The people of ${d.from} have settled ${t.d.name}`); discover('evacuated'); focusEvent(t,`Settled: ${t.d.name}`,t.d.seed+':settle'); changed(); }
+    else toast(`The ark from ${d.from} found ${t.d.name} uninhabitable; nothing survived the landing.`); return; }
   const years=simT-d.t0, au=d.d0/15; const rows=[];
   if(target.kind==='planet'){ rows.push(['Type',planetKind(target)],...notesFor(target).rows); }
   else if(target.kind==='moon'){ rows.push(['Type','Moon of '+target.planet.d.name],['Radius',`${Math.round(target.d.size*1.15*6371).toLocaleString('en-US')} km`],['Period',`${moonPeriodDays(target).toFixed(1)} days`],['Surface','Cratered regolith; no atmosphere to speak of.']); }

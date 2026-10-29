@@ -6,6 +6,28 @@ function setSmear(p,on){ if(p.smeared===on) return; p.smeared=on; p.holder.visib
   if(on&&p.smearStale) rebuildSmear(p); p.smear.visible=on;
   if(on&&!smearTold){ smearTold=true; toast('At this speed planets orbit faster than frames: each shows as a band along its orbit. Slow the clock to see them again.'); } }
 let smearTold=false;
+/* life on a world: habitability accumulates into stages; death resets it; the score accrues every year */
+const STAGE_DISC=['','life','complex','civilised','spacefaring','interstellar'];
+function lifeStep(s,p,dy,tick){ const d=p.d; if(d.lifeAge===undefined){ d.lifeAge=0; d.sinceExt=1e12; d.stage=0; }
+  if(dy>0){ d.sinceExt+=dy;
+    if(d.extinct){ if(d.dust<=0){ d.extinct=false; d.lifeAge=0; if(tick) { toast(`Life stirs again on ${d.name}`); discover('rebirth'); } } }
+    else if(p.alive) d.lifeAge+=dy;
+    else if(d.lifeAge>0){ if(d.stage>=1&&tick) toast(`${d.name} left the habitable zone; its ${stageOf(d.stage).name.toLowerCase()} died out`); d.lifeAge=0; }
+    if(mode!=='daily') legacy+=legacyRate(d.stage)*dy;
+    if((d.stage||0)>=4){ d.civT=(d.civT||0)+dy; if(d.civT>3e7&&probes.filter(x=>x.d.civ).length<3){ d.civT=0; civProbe(p); } } }
+  if(!tick) return;
+  const st=stageFor(d.lifeAge,d.sinceExt);
+  if(st!==d.stage){ const up=st>d.stage; d.stage=st; p.mat.uniforms.uCiv.value=stageOf(st).lights; refreshLabel(p); if(sel===p) updatePanel();
+    if(up){ const name=stageOf(st).name; toast(st===1?`Life has appeared on ${d.name}`:st===2?`Complex life on ${d.name}`:`${d.name} is now ${st===3?'home to a civilisation':st===4?'spacefaring':'an interstellar civilisation'}`); discover(STAGE_DISC[st]);
+      if(st>=3) focusEvent(p,`${name}: ${d.name}`,d.seed+':st'+st); } }
+  else p.mat.uniforms.uCiv.value+=(stageOf(st).lights-p.mat.uniforms.uCiv.value)*.2;
+  /* spacefaring peoples send out their own probes now and then */
+  /* an X-ray binary next door is lethal to anything above microbes */
+  if(st>=2){ for(const h of holes){ if(h.feed>.5&&h.group.position.distanceTo(s.group.position)<150){ toast(`Radiation from ${h.d.name} has sterilised ${d.name} down to its microbes`); d.lifeAge=Math.min(d.lifeAge,1.5e8); d.sinceExt=0; d.extinctions=(d.extinctions||0)+1; d.stage=1; p.mat.uniforms.uCiv.value=0; refreshLabel(p); break; } } } }
+function civProbe(p){ const targets=[]; for(const s of stars){ if(s!==p.star) targets.push(s); for(const q of s.planets) if(q!==p) targets.push(q); } if(!targets.length) return;
+  const t=pick(targets); const from=lp(p.holder,new THREE.Vector3()), to=lp(targetObj(t),new THREE.Vector3()); const dir=to.clone().sub(from); const dist=dir.length(); dir.normalize();
+  const s=p.star; const vOrb=omega(s,p.d.orbit)*p.d.orbit; const a=p.angle; const vel=new THREE.Vector3(-Math.sin(a),0,Math.cos(a)).multiplyScalar(vOrb).add(dir.multiplyScalar(Math.max(vOrb*2.2,Math.sqrt(2*GM_UNITS*s.d.mass/Math.max(p.d.orbit,1))*1.15)));
+  makeProbe({x:from.x,z:from.z,vx:vel.x,vz:vel.z,from:p.d.name,tk:t.kind,tn:t.d.name,t0:simT,d0:dist,ox:from.x,oz:from.z,name:`a probe from ${p.d.name}`,civ:true}); toast(`The people of ${p.d.name} launched a probe toward ${t.d.name}`); }
 function placeLabel(o,pos,lift,alpha){
   const el=o.labelEl; if(alpha<=.01){ if(el.style.opacity!=='0') el.style.opacity='0'; return; }
   tmp.copy(pos); tmp.y+=lift; tmp.project(camera);
@@ -55,6 +77,7 @@ function frame(t){
       setSmear(p,ypr>0&&periodYears(p.d.orbit,s.d.mass)/ypr<.6); if(p.smeared&&p.smearStale&&doOrbits) rebuildSmear(p);
       spinPlanet(p,dy); p.mat.uniforms.uTime.value=now;
       if(p.d.dust>0){ p.d.dust=Math.max(0,p.d.dust-dy/10); p.mat.uniforms.uDust.value=p.d.dust; }
+      lifeStep(s,p,dy,doOrbits);
       if(ypr>=1e3&&dy>0&&Math.random()<1-Math.exp(-dy/1e8)){ lp(p.holder,wp); impact(null,p,wp); }
       const g=now-p.born;
       if(g<5){ p.grow.scale.setScalar(.18+.82*easeOut(clamp(g/1.8))); p.growU.value=clamp((g-1.1)/3.2); }

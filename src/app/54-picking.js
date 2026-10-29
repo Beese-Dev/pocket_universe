@@ -8,7 +8,9 @@ function pickAt(x,y,loose){ ndc.set(x/innerWidth*2-1,-(y/innerHeight)*2+1); ray.
   return best; }
 function handleTap(x,y){
   const o=pickAt(x,y,coarse);
-  if(probeFrom){ const from=probeFrom; probeFrom=null; setHint(); if(o&&o!==from) launchProbe(from,o); else toast('Probe stood down.'); return; }
+  if(probeFrom){ const from=probeFrom, ark=arkMode;
+    if(ark&&o&&o!==from&&(o.kind!=='planet'||!o.alive||o.d.scorched)){ toast(o.kind==='planet'?`${o.d.name} is not habitable; choose a rocky or ocean world inside a green band.`:'An ark needs a habitable world to land on.'); return; } /* keep aiming */
+    probeFrom=null; arkMode=false; setHint(); if(o&&o!==from) launchProbe(from,o,ark); else toast(ark?'Ark stood down.':'Probe stood down.'); return; }
   if(o){ if(o===sel&&o.kind==='star') growPlanet(o); else if(o===sel){ following=true; } else select(o); return; }
   const pt=new THREE.Vector3(); if(!ray.ray.intersectPlane(plane,pt)){ toast('Tilt the view down to reach open space'); return; } world.worldToLocal(pt);
   const pad=seedMode==='hole'?10:14;

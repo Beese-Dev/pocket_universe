@@ -1,6 +1,6 @@
 /* ---------- the clock: one simulated time, in years ---------- */
 const RATES=[{y:1/365.25,l:'a day per second'},{y:1/12,l:'a month per second'},{y:1,l:'a year per second'},{y:1e3,l:'a thousand years per second'},{y:1e6,l:'a million years per second'}];
-let rateIdx=1, ypr=RATES[1].y, simT=0;
+let rateIdx=1, ypr=RATES[1].y, simT=0, legacy=0; /* legacy: points earned by every world's life over this universe's whole history */
 /* slow motion around stellar events: at kyr/s and Myr/s the clock eases to 20% so the moment can be watched */
 let slowOn=true; try{ slowOn=localStorage.getItem(STORE+'-slow')!=='0'; }catch(e){}
 let slowK=1, slowHold=0, slowReason=null, slowAnnounced=null;

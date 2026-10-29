@@ -21,7 +21,15 @@ function notesFor(p){ const d=p.d, s=p.star, R=mulberry(Math.floor(d.seed*9973))
   if(s.giantF>1) weather='The star fills a third of the sky. '+weather;
   let life, species=null;
   if(d.scorched) life='Sterilised by the supernova. Glass plains where oceans were.';
-  else if((d.type==='rocky'||d.type==='ocean')&&T>235&&T<335){ species=`${makeName(R)} ${r(FORMS)} ${r(HABITS)}`; life=d.extinct?`Fossil record only: ${species} went extinct in a comet impact.`:species+'.'; }
+  else if((d.type==='rocky'||d.type==='ocean')&&T>235&&T<335){ species=`${makeName(R)} ${r(FORMS)} ${r(HABITS)}`; const st=d.stage||0, la=d.lifeAge||0;
+    if(d.extinct) life=`Fossil record only: ${species} went extinct in a comet impact.`;
+    else if(st===0) life=`Habitable, but still lifeless: life takes about 100 Myr to begin (${fmtYears(la)} so far).`;
+    else if(st===1) life=`Microbial mats and stromatolites. Given ${fmtYears(5e8-la)} more, ${species} will evolve.`;
+    else if(st===2) life=`${species}.`;
+    else if(st===3) life=`A civilisation of ${species}, tech level ${techLevel(la)}. ${techLevel(la)<5?'Pre-industrial; their fires show on the night side.':'Industrial; their cities light the night side.'}`;
+    else if(st===4) life=`A spacefaring civilisation of ${species} (tech ${techLevel(la)}). They launch probes and can deflect smaller impacts.`;
+    else life=`An interstellar civilisation of ${species}. They could be evacuated to another world before this star dies.`;
+    if(d.extinctions&&!d.extinct) life+=` ${d.extinctions} extinction${d.extinctions===1?'':'s'} in the fossil record.`; }
   else if(d.type==='ocean'&&T>=335&&T<420) life=R()<.6?'Heat-loving microbial mats along the shallows.':'No life detected.';
   else if(d.type==='ice') life=R()<.45?'Chemosynthetic life suspected under the ice shell.':'No life detected.';
   else if(d.type==='gas') life=R()<.3?'Drifting aerial microbes, unconfirmed.':'No life detected.';

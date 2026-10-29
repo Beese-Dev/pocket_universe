@@ -1,5 +1,5 @@
 /* ---------- supernova ---------- */
-function scorch(p){ const d=p.d; d.type='lava'; d.scorched=true; d.clouds=false; d.colors=pick(PALETTES.lava).map(jitter); d.atmo=ATMO.lava;
+function scorch(p){ const d=p.d; if((d.stage||0)>=3) toast(`The civilisation on ${d.name} perished`); d.lifeAge=0; d.stage=0; d.sinceExt=0; if(p.mat) p.mat.uniforms.uCiv.value=0; d.type='lava'; d.scorched=true; d.clouds=false; d.colors=pick(PALETTES.lava).map(jitter); d.atmo=ATMO.lava;
   const u=p.mat.uniforms; u.uType.value=3; u.uClouds.value=0; u.uA.value.set(d.colors[0]); u.uB.value.set(d.colors[1]); u.uC.value.set(d.colors[2]); p.atmo.material.uniforms.uColor.value.set(d.atmo);
   if(p.ring){ p.tilt.remove(p.ring); p.ring=null; d.rings=false; } }
 function killMoon(m){ m.labelEl.remove(); hitTargets=hitTargets.filter(x=>x!==m.hit); if(sel===m) select(m.planet); }

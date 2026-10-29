@@ -1,6 +1,6 @@
 /* ---------- persistence ---------- */
 function serialize(){ stars.forEach(s=>s.planets.forEach(p=>{ p.d.angle=+(p.angle%TAU).toFixed(3); p.moons.forEach(m=>m.d.angle=+(m.pivot.rotation.y%TAU).toFixed(3)); }));
-  return {v:3,t:+simT.toFixed(3),catalogN,stars:stars.map(s=>s.d),holes:holes.map(h=>h.d),
+  return {v:3,t:+simT.toFixed(3),legacy:+legacy.toFixed(2),catalogN,stars:stars.map(s=>s.d),holes:holes.map(h=>h.d),
     rogues:rogues.map(p=>({d:p.d,x:+p.holder.position.x.toFixed(2),z:+p.holder.position.z.toFixed(2),vx:+p.rogue.vel.x.toFixed(3),vz:+p.rogue.vel.z.toFixed(3),from:p.rogue.from,ox:p.rogue.origin.x,oz:p.rogue.origin.z})),
     remnants:remnants.map(r=>({x:r.d.x,z:r.d.z,t:+r.d.t.toFixed(1),seed:r.d.seed,kind:r.d.kind})),probes:probes.map(pr=>pr.d)}; }
 function migrate(state){ if((state.v||0)>=3) return state;
@@ -16,7 +16,7 @@ function loadState(state){
   holes.forEach(h=>{ world.remove(h.group); h.labelEl.remove(); }); comets.forEach(c=>c.dispose());
   rogues.forEach(p=>{ world.remove(p.holder); killPlanet(p); }); remnants.forEach(r=>{ world.remove(r.mesh); r.mat.dispose(); });
   stars=[]; holes=[]; comets=[]; rogues=[]; remnants=[]; hitTargets=[]; if(sel) select(null);
-  migrate(state); simT=state.t||0;
+  migrate(state); simT=state.t||0; legacy=state.legacy||0;
   (state.holes||[]).forEach(d=>makeHole(d,false));
   state.stars.forEach(d=>{ d.planets=d.planets||[]; d.age=d.age||0; d.planets.forEach(p=>p.moons=p.moons||[]); makeStar(d,false); });
   (state.rogues||[]).forEach(rd=>{ rd.d.moons=rd.d.moons||[]; makeRogue(rd); });

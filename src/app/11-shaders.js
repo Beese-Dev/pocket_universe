@@ -30,7 +30,7 @@ const VS=`varying vec3 vObj; varying vec3 vWorld; varying vec3 vN;
 void main(){ vObj=position; vec4 w=modelMatrix*vec4(position,1.0); vWorld=w.xyz; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }`;
 
 const PLANET_FS=`uniform vec3 uA; uniform vec3 uB; uniform vec3 uC; uniform vec3 uStarPos; uniform vec3 uStarCol;
-uniform float uType; uniform float uSeed; uniform float uTime; uniform float uGrow; uniform float uClouds; uniform float uDust;
+uniform float uType; uniform float uSeed; uniform float uTime; uniform float uGrow; uniform float uClouds; uniform float uDust; uniform float uCiv;
 varying vec3 vObj; varying vec3 vWorld; varying vec3 vN;
 ${NOISE}
 void main(){
@@ -72,6 +72,9 @@ void main(){
   float lit=smoothstep(-0.12,1.0,d);
   vec3 lc=col*(0.035+lit*uStarCol*1.02)+emis;
   lc=mix(lc,vec3(dot(lc,vec3(0.33)))*vec3(0.75,0.68,0.6),uDust*0.75);
+  /* a civilisation: city lights where it is night */
+  float night=smoothstep(0.08,-0.2,d); float towns=smoothstep(0.5,0.72,fbm(sp*9.0+vec3(7.0)))*step(0.55,fbm(sp*2.0+vec3(2.0))*0.5+0.5+0.2);
+  lc+=vec3(1.0,0.76,0.42)*uCiv*night*towns*1.1;
   float m=fbm(p*3.0+vec3(uTime*0.25));
   vec3 molten=mix(vec3(1.7,0.45,0.08),vec3(0.35,0.05,0.02),smoothstep(-0.3,0.5,m))*(0.5+0.6*max(d,0.0));
   float g=uGrow*1.3;

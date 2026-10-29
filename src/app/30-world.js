@@ -13,7 +13,7 @@ function makeLabel(o){ const el=document.createElement('div'); el.className='lbl
 function refreshLabel(o){ o.labelB.textContent=o.d.name;
   o.labelI.textContent=o.kind==='star'?(o.d.cls==='P'?`Pulsar · ${o.d.catalog}`:o.d.cls==='D'?`White dwarf · ${o.d.catalog}`:o.d.giant?`Red giant · ${o.d.catalog}`:o.d.binary?`${o.d.cls}+${o.d.binary.cls} binary · ${o.d.catalog}`:`${o.d.cls}-type · ${o.d.catalog}`)
     :o.kind==='hole'?`Black hole · ${o.d.mass.toFixed(0)} M☉`:o.kind==='moon'?`Moon of ${o.planet.d.name}`:planetKind(o); }
-function planetKind(p){ return p.rogue?(p.d.core?'Rogue core · drifting':'Rogue world · drifting'):p.d.core?'Stripped core':p.d.scorched?'Scorched world':TYPE_LABEL[p.d.type]; }
+function planetKind(p){ const base=p.rogue?(p.d.core?'Rogue core · drifting':'Rogue world · drifting'):p.d.core?'Stripped core':p.d.scorched?'Scorched world':TYPE_LABEL[p.d.type]; return (p.d.stage>=3&&!p.rogue)?`${base} · ${stageOf(p.d.stage).name}`:base; }
 
 function buildSun(cls,seed,parent,x){
   const T=STAR_TYPES[cls], col=new THREE.Color(T.col);
@@ -90,7 +90,7 @@ function rebuildAllOrbits(){ stars.forEach(s=>s.planets.forEach(rebuildOrbit)); 
 
 function planetMaterial(colors,type,seed,clouds,starPos,starCol,growU){
   return new THREE.ShaderMaterial({uniforms:{uA:{value:new THREE.Color(colors[0])},uB:{value:new THREE.Color(colors[1])},uC:{value:new THREE.Color(colors[2])},
-    uStarPos:{value:starPos},uStarCol:{value:starCol},uType:{value:TYPE_CODE[type]},uSeed:{value:seed},uTime:{value:0},uGrow:growU,uClouds:{value:clouds?1:0},uDust:{value:0}},
+    uStarPos:{value:starPos},uStarCol:{value:starCol},uType:{value:TYPE_CODE[type]},uSeed:{value:seed},uTime:{value:0},uGrow:growU,uClouds:{value:clouds?1:0},uDust:{value:0},uCiv:{value:0}},
     vertexShader:VS,fragmentShader:PLANET_FS});
 }
 function makePlanet(s,pd,animate){
