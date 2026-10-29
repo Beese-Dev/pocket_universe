@@ -40,7 +40,7 @@ function buildBody(s){
   const hr=d.binary&&d.cls!=='P'&&d.cls!=='D'?d.binary.sep/2+s.T.r*1.4:Math.max(s.T.r*1.6,2.2);
   s.hit.scale.setScalar(hr*HITK);
 }
-function makeStar(d,animate){
+function makeStar(d,animate){ if(!d.uid) d.uid=newUid();
   const group=new THREE.Group(); group.position.set(d.x,0,d.z); world.add(group);
   const hit=new THREE.Mesh(HIT,hitMat); group.add(hit);
   const s={kind:'star',d,group,hit,planets:[],born:animate?now:-99,lightCol:new THREE.Color(),warned:false};
@@ -93,7 +93,7 @@ function planetMaterial(colors,type,seed,clouds,starPos,starCol,growU){
     uStarPos:{value:starPos},uStarCol:{value:starCol},uType:{value:TYPE_CODE[type]},uSeed:{value:seed},uTime:{value:0},uGrow:growU,uClouds:{value:clouds?1:0},uDust:{value:0},uCiv:{value:0}},
     vertexShader:VS,fragmentShader:PLANET_FS});
 }
-function makePlanet(s,pd,animate){
+function makePlanet(s,pd,animate){ if(!pd.uid) pd.uid=newUid();
   const holder=new THREE.Object3D(); s.group.add(holder);
   const grow=new THREE.Group(); holder.add(grow);
   const tilt=new THREE.Group(); tilt.rotation.z=pd.tilt; grow.add(tilt);
@@ -119,7 +119,7 @@ function makePlanet(s,pd,animate){
   pd.moons.forEach(md=>makeMoon(p,md,false));
   return p;
 }
-function makeMoon(p,md,animate){
+function makeMoon(p,md,animate){ if(!md.uid) md.uid=newUid();
   const incl=new THREE.Object3D(); incl.rotation.x=md.incl; p.holder.add(incl);
   const pivot=new THREE.Object3D(); pivot.rotation.y=md.angle; incl.add(pivot);
   const growU={value:animate?0:1};

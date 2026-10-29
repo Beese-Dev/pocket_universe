@@ -21,7 +21,7 @@ function launchProbe(o,target,ark){
   /* a moon is a cheaper launch site: no deep planetary gravity well to climb out of */
   const dv=Math.max(vOrb*(o.kind==='moon'?2.0:2.2),Math.sqrt(2*GM_UNITS*s.d.mass/Math.max(p.d.orbit,1))*(o.kind==='moon'?1.05:1.15));
   const vel=orbital.add(dir.multiplyScalar(dv));
-  const pd={x:from.x,z:from.z,vx:vel.x,vz:vel.z,from:o.d.name,tk:target.kind,tn:target.d.name,t0:simT,d0:dist,ox:from.x,oz:from.z,name:ark?`${o.d.name} ark`:`${o.d.name} probe`,ark:!!ark,lifeAge:ark?o.d.lifeAge:0};
+  const pd={x:from.x,z:from.z,vx:vel.x,vz:vel.z,from:o.d.name,fromId:p.d.uid,tk:target.kind,tn:target.d.name,t0:simT,d0:dist,ox:from.x,oz:from.z,name:ark?`${o.d.name} ark`:`${o.d.name} probe`,ark:!!ark,lifeAge:ark?o.d.lifeAge:0};
   makeProbe(pd); if(!ark) tourFlags.probe=true; chime(1320,1.6,.05,'A'); toast(`${pd.name} launched toward ${target.d.name} at ${(dv/15*4.74).toFixed(0)} km/s`); discover(ark?'ark':'probe'); changed(); }
 function stepProbe(pr,dy){ const d=pr.d; const target=findTarget(d.tk,d.tn);
   if(!target){ toast(`${d.name} lost its destination`); dropProbe(pr); return false; }
@@ -48,7 +48,7 @@ function stepProbe(pr,dy){ const d=pr.d; const target=findTarget(d.tk,d.tn);
   return true; }
 function probeArrives(pr,target){ const d=pr.d; burst(pr.pos,new THREE.Color(.7,1,.85),50,3,.4); chime(1760,2,.05,'A'); dropProbe(pr);
   if(d.civ){ toast(`${d.name} reached ${target.d.name}`); return; }
-  if(missions){ missions.flags.arrivals.push({from:d.from,to:target.d.name}); if(missions.flags.arrivals.length>40) missions.flags.arrivals.shift(); missionsSave(); }
+  if(missions){ missions.flags.arrivals.push({from:d.fromId||d.from,to:(target.kind==='planet'?target.star:target.kind==='moon'?target.planet.star:target).d.uid}); if(missions.flags.arrivals.length>40) missions.flags.arrivals.shift(); missionsSave(); }
   if(d.ark){ const t=target; if(t.kind==='planet'&&t.alive&&!t.d.scorched&&!t.d.extinct){ t.d.lifeAge=Math.max(t.d.lifeAge||0,Math.min(d.lifeAge||1.5e9,2.5e9)); t.d.sinceExt=1e12; t.d.stage=stageFor(t.d.lifeAge,t.d.sinceExt); t.mat.uniforms.uCiv.value=stageOf(t.d.stage).lights; refreshLabel(t);
       toast(`The people of ${d.from} have settled ${t.d.name}`); discover('evacuated'); mstat('evacuated'); focusEvent(t,`Settled: ${t.d.name}`,t.d.seed+':settle'); changed(); }
     else toast(`The ark from ${d.from} found ${t.d.name} uninhabitable; nothing survived the landing.`); return; }
