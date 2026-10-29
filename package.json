@@ -1,0 +1,27 @@
+{
+  "name": "starcradle",
+  "version": "0.1.0",
+  "description": "Starcradle: a small universe in your browser.",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "test": "node --test test/*.test.js",
+    "watch": "node tools/build.mjs --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Beese-Dev/pocket_universe.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Beese-Dev/pocket_universe/issues"
+  },
+  "homepage": "https://github.com/Beese-Dev/pocket_universe#readme",
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  },
+  "private": true,
+  "type": "module"
+}

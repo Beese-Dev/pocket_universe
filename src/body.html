@@ -1,0 +1,158 @@
+
+<canvas id="c" tabindex="0" aria-label="Starcradle. Click empty space to plant a star."></canvas>
+<div id="labels"></div>
+<div id="ui">
+  <div class="top">
+    <div class="brand">
+      <h1>Starcradle</h1>
+      <p id="counts">—</p>
+      <p id="clock">T + 0 d</p>
+      <p id="slowBadge" hidden></p>
+      <p id="dailyLine" hidden></p>
+    </div>
+    <div class="tools">
+      <button class="chip" id="timeChip" hidden aria-haspopup="true" aria-expanded="false"><span class="n">TIME</span><span id="timeChipT">mo/s</span></button>
+      <button class="chip" id="menuChip" hidden aria-haspopup="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></button>
+      <div class="seg" id="seedSeg" role="group" aria-label="What to plant">
+        <span class="lead">Plant</span>
+        <button id="seedStar" data-seed="star" aria-pressed="true">Star</button>
+        <button id="seedHole" data-seed="hole" aria-pressed="false">Black hole</button>
+      </div>
+      <div class="seg" id="timeSeg" role="group" aria-label="Time speed">
+        <span class="lead">Time</span>
+        <button data-rate="-1" aria-pressed="false" title="Pause">Pause</button>
+        <button data-rate="0" aria-pressed="false" title="One day per second">day/s</button>
+        <button data-rate="1" aria-pressed="true" title="One month per second">mo/s</button>
+        <button data-rate="2" aria-pressed="false" title="One year per second">yr/s</button>
+        <button data-rate="3" aria-pressed="false" title="A thousand years per second">kyr/s</button>
+        <button data-rate="4" aria-pressed="false" title="A million years per second">Myr/s</button>
+      </div>
+      <button class="chip" id="discBtn"><span>Discoveries</span><span class="n" id="discN">0/20</span></button>
+      <button class="chip" id="dailyBtn"><span>Daily</span></button>
+      <button class="chip" id="atlasBtn" aria-pressed="false"><span>Atlas</span></button>
+      <button class="chip" id="guideBtn"><span>Guide</span></button>
+      <button class="chip" id="shareBtn"><span>Share</span></button>
+      <button class="chip" id="sound" aria-pressed="true" title="Sound">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path id="wave" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+        <span class="t" id="soundT">Sound on</span>
+      </button>
+      <div class="seg" id="slowSeg" role="group" aria-label="Slow motion for events">
+        <span class="lead">Events</span>
+        <button data-slow="1" aria-pressed="true" title="Fly to major events, frame them and ease time">Follow</button>
+        <button data-slow="0" aria-pressed="false" title="Only mention events; never move the camera or the clock">Ignore</button>
+      </div>
+      <div class="seg" id="touchSeg" role="group" aria-label="One finger" hidden>
+        <span class="lead">One finger</span>
+        <button data-touch="pan" aria-pressed="true">Moves</button>
+        <button data-touch="spin" aria-pressed="false">Spins</button>
+      </div>
+      <button class="chip" id="overview"><span>Overview</span></button>
+      <button class="chip" id="reset"><span>New universe</span></button>
+      <button class="chip" id="resetNo" hidden>Keep it</button>
+      <button class="chip warn" id="homeBtn" hidden>Visiting · Return home</button>
+    </div>
+  </div>
+  <div class="bottom">
+    <section id="panel" hidden aria-live="polite">
+      <div class="ph">
+        <span class="eyebrow"><span class="sw" id="pSw"></span><span id="pKind"></span></span>
+        <span style="display:flex;gap:6px;align-items:center"><button id="pMore" aria-expanded="false">More</button><button class="x" id="pClose" aria-label="Close panel">×</button></span>
+      </div>
+      <label class="namefield">
+        <input id="pName" maxlength="28" spellcheck="false" autocomplete="off" aria-label="Name">
+        <svg class="pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        <small>Tap the name to rename it · Enter to keep</small>
+      </label>
+      <dl id="pStats"></dl>
+      <dl class="notes" id="pNotes" hidden></dl>
+      <div class="acts">
+        <button class="btn primary" id="pPrimary"></button>
+        <button class="btn ghost" id="pSecondary"></button>
+        <button class="btn ghost" id="pNotesBtn" aria-expanded="false" hidden>Field notes</button>
+        <button class="btn ghost" id="pProbe" hidden>Launch probe</button>
+        <button class="btn ghost" id="pCard" hidden>Postcard</button>
+      </div>
+    </section>
+  </div>
+</div>
+<div id="eventBar" hidden><span class="dot"></span><span id="eventTxt"></span><button class="btn ghost" id="eventBack">Return</button></div>
+<div id="hint"></div>
+<div id="tour" hidden>
+  <div class="tcard">
+    <p id="tourText"></p>
+    <div class="row"><button class="btn primary" id="tourNext">Next</button><button class="btn ghost" id="tourSkip">Close for now</button><span class="tdots" id="tourDots"></span></div>
+    <label class="tnever"><input type="checkbox" id="tourNever"> Don't show these lessons again</label>
+  </div>
+</div>
+<div id="toast" role="status"></div>
+
+<div class="sheet" id="discSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="discH">
+    <div class="ph"><h2 id="discH">Discoveries</h2><button class="x" data-close aria-label="Close">×</button></div>
+    <div class="prog"><i id="discBar" style="width:0"></i></div>
+    <p id="discP"></p>
+    <div class="disc" id="discGrid"></div>
+  </div>
+</div>
+<div class="sheet" id="dailySheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="dailyH">
+    <div class="ph"><h2 id="dailyH">Daily challenge</h2><button class="x" data-close aria-label="Close">×</button></div>
+    <div id="dailyBody"></div>
+  </div>
+</div>
+<div class="sheet drawer" id="atlasSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="atlasH">
+    <div class="ph"><h2 id="atlasH">Atlas</h2><button class="x" data-close aria-label="Close">×</button></div>
+    <div class="atlas" id="atlasList"></div>
+  </div>
+</div>
+<div class="sheet" id="guideSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="guideH">
+    <div class="ph"><h2 id="guideH">Guide</h2><button class="x" data-close aria-label="Close">×</button></div>
+    <p>Everything the universe can do, one chapter each. Or let it show you: the guided lessons walk you through it step by step.</p>
+    <div class="row"><button class="btn primary" id="guideLesson">Start the lesson: going further</button><button class="btn ghost" id="guideBasics">Replay the basics</button></div>
+    <div class="guide" id="guideList"></div>
+  </div>
+</div>
+<div class="sheet" id="menuSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="menuH">
+    <div class="ph"><h2 id="menuH">Menu</h2><button class="x" data-close aria-label="Close">×</button></div>
+    <div class="menuGrid" id="menuGrid"></div>
+    <p>Pinch to zoom. Dragging away from a selected world stops the camera following it; tap it again to follow.</p>
+  </div>
+</div>
+<div class="sheet" id="timeSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="timeH" style="width:min(320px,100%)">
+    <div class="ph"><h2 id="timeH">Time</h2><button class="x" data-close aria-label="Close">×</button></div>
+    <p>How much simulated time passes for each real second.</p>
+    <div class="menuGrid" id="timeGrid"></div>
+  </div>
+</div>
+<div class="sheet" id="repSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="repH">
+    <div class="ph"><span class="eyebrow">Probe report</span><button class="x" data-close aria-label="Close">×</button></div>
+    <h2 id="repH"></h2>
+    <p id="repP"></p>
+    <dl class="notes" id="repRows"></dl>
+  </div>
+</div>
+<div class="sheet" id="cardSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="cardH">
+    <div class="ph"><h2 id="cardH">Postcard</h2><button class="x" data-close aria-label="Close">×</button></div>
+    <img id="cardImg" alt="Postcard of the selected world" style="width:100%;border-radius:10px;display:block">
+    <div class="row"><button class="btn primary" id="cardCopy">Copy image</button><span class="err" id="cardMsg">Press and hold, or right-click, to save it.</span></div>
+  </div>
+</div>
+<div class="sheet" id="shareSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="shareH">
+    <div class="ph"><h2 id="shareH">Share your universe</h2><button class="x" data-close aria-label="Close">×</button></div>
+    <p>This code holds every star, planet, moon and name. Send it to a friend; they paste it below on their own copy of the page to visit.</p>
+    <textarea id="shareOut" readonly aria-label="Your share code" spellcheck="false"></textarea>
+    <div class="row"><button class="btn primary" id="copyBtn">Copy code</button><span class="err" id="copyMsg"></span></div>
+    <div class="rule"></div>
+    <p><b style="color:var(--ink)">Visit a friend's universe.</b> Your own universe stays saved; use Return home to come back.</p>
+    <textarea id="shareIn" placeholder="Paste a share code" aria-label="Paste a share code" spellcheck="false"></textarea>
+    <div class="row"><button class="btn ghost" id="visitBtn">Visit</button><span class="err" id="visitMsg"></span></div>
+  </div>
+</div>
+
