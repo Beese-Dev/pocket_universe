@@ -53,3 +53,19 @@ test('the Hill radius shrinks as the hole gets closer or heavier', () => {
   assert.ok(hillRadius(30, 1, 10) < hillRadius(60, 1, 10));
   assert.ok(hillRadius(60, 1, 40) < hillRadius(60, 1, 10));
 });
+
+import { mergeTimeYears, classForMass, circumbinaryLimit } from '../src/lib/physics.js';
+test('binary merge times: contact pairs in tens of Myr, wide pairs never; a black hole speeds it up', () => {
+  assert.ok(mergeTimeYears(5, 2.5, 2.5) < 3e7);
+  assert.equal(mergeTimeYears(40, 3, 2), Infinity);
+  assert.ok(mergeTimeYears(8, 3, 2, true) < mergeTimeYears(8, 3, 2));
+});
+test('a merged star is reclassified by mass', () => {
+  const cat = { O:{m:16}, B:{m:9}, A:{m:2.1}, F:{m:1.3}, G:{m:1}, K:{m:.72}, M:{m:.33}, P:{m:1.4}, D:{m:.6} };
+  assert.equal(classForMass(1.29, cat), 'F');
+  assert.equal(classForMass(9.5, cat), 'B');
+  assert.equal(classForMass(0.5, cat), 'K');
+});
+test('circumbinary planets need about 2.3 separations of room', () => {
+  assert.equal(circumbinaryLimit(8), 18.4);
+});

@@ -45,6 +45,17 @@ function whiteDwarf(s){ const d=s.d, pos=s.group.position.clone(), M0=d.mass; sl
   buildBody(s); s.planets.forEach(rebuildOrbit); refreshLabel(s);
   toast(`${d.name} shed its outer layers. A white dwarf remains${flung.length?`; ${flung.length} world${flung.length===1?'':'s'} drift free`:'; its surviving orbits widen'}.`);
   discover('whitedwarf'); discover('nebula'); if(flung.length) discover('rogue'); updatePanel(); changed(); }
+/* a close binary spirals together: a luminous red nova, then one heavier, rejuvenated star */
+function mergeStars(s,collision){ const d=s.d, b=d.binary; if(!b) return; const pos=s.group.position.clone();
+  slowEvent(`${d.name}'s stars merged`); focusEvent(s,`${collision?'Collision':'Stellar merger'}: ${d.name}`,d.catalog+':merge'+Math.round(d.age));
+  burst(pos,new THREE.Color(1,.45,.3),320,16,1); shock(pos,new THREE.Color(1,.5,.35),60); flash(pos,s.T.r*14); boom(.6,pos); chime(s.T.hz*.5,3,.07,'M');
+  makeRemnant({x:pos.x,z:pos.z,t:0,seed:rand(0,60),kind:2});
+  const M=d.mass; const cls=classForMass(M,STAR_TYPES), T=STAR_TYPES[cls];
+  d.binary=null; d.cls=cls; d.temp=Math.round(rand(T.t[0],T.t[1])/10)*10; d.seed=rand(0,60); d.giant=false; s.giantF=1;
+  d.age=Math.min(d.age,lifetimeYears(M)*.3); /* the merged star looks younger than its parents */
+  buildBody(s); refreshLabel(s); s.planets.forEach(rebuildOrbit);
+  toast(`${d.name}'s two stars ${collision?'collided':'spiralled together'}: a red nova, and a single ${T.desc} of ${M.toFixed(1)} M☉ remains.`);
+  discover('merger'); if(M>=8) discover('massive-made'); updatePanel(); changed(); }
 function makeRogue(rd){ const s=stars.find(x=>x.d.name===rd.from)||stars[0]; if(!s) return;
   const p=makePlanet(s,rd.d,false); detachPlanet(s,p); world.attach(p.holder); p.holder.position.set(rd.x,0,rd.z);
   p.rogue={vel:new THREE.Vector3(rd.vx,0,rd.vz),from:rd.from,origin:new THREE.Vector3(rd.ox,0,rd.oz)}; rogues.push(p); refreshLabel(p); }
@@ -70,8 +81,8 @@ function stepRogue(p,dy){ const r=p.rogue, h=p.holder.position;
   const far=Math.min(h.distanceTo(r.origin),near); if(far>210){ toast(`${p.d.name} drifted into interstellar space`); removeRogue(p); return false; }
   p.grow.scale.setScalar(clamp((210-far)/45)); return true; }
 const REM_GEO=new THREE.SphereGeometry(1,64,48);
-function remLife(d){ return d.kind===1?2e4:5e4; }
+function remLife(d){ return d.kind===1?2e4:d.kind===2?3e3:5e4; }
 function makeRemnant(d){ d.kind=d.kind||0; const mat=new THREE.ShaderMaterial({uniforms:{uT:{value:d.t},uLife:{value:remLife(d)},uSeed:{value:d.seed},uKind:{value:d.kind}},vertexShader:VS,fragmentShader:REM_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
   const mesh=new THREE.Mesh(REM_GEO,mat); mesh.position.set(d.x,0,d.z); mesh.renderOrder=2; world.add(mesh); remnants.push({d,mesh,mat}); }
 function stepRemnant(r,dy){ r.d.t+=dy; const L=remLife(r.d); if(r.d.t>L){ world.remove(r.mesh); r.mat.dispose(); return false; } r.mat.uniforms.uT.value=r.d.t; const k=r.d.t/L;
-  r.mesh.scale.setScalar(r.d.kind===1?3+25*Math.sqrt(k):5+70*Math.pow(k,.4)); return true; }
+  r.mesh.scale.setScalar(r.d.kind===1?3+25*Math.sqrt(k):r.d.kind===2?2+14*Math.sqrt(k):5+70*Math.pow(k,.4)); return true; }

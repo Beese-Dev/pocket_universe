@@ -9,6 +9,20 @@ function plantStar(pt){
   if(near&&nd<tidalR(s,near)){ setTimeout(()=>{ if(stars.includes(s)) disruptStar(s,near); },1400); }
   else if(near&&nd<bindRange(near)) setTimeout(()=>{ if(stars.includes(s)) bindStar(s,near); },600);
 }
+/* planting onto a system adds a companion star; planting onto the star itself is a collision */
+function formBinary(s,pt){ const d=s.d;
+  if(d.cls==='P'||d.cls==='D'){ toast(`${d.name} is a compact remnant; nothing can share its orbit.`); return; }
+  if(d.binary){ toast(`${d.name} is already a pair.`); return; }
+  const cls=rollClass(), T2=STAR_TYPES[cls], dist=pt.distanceTo(s.group.position);
+  const sep=+Math.max(s.T.r+T2.r+.5,Math.min(dist,innerR(s)*2)).toFixed(1);
+  const m2=+(T2.m*rand(.85,1.15)).toFixed(2);
+  d.binary={cls,sep,seed:rand(0,60),since:d.age}; d.mass=+(d.mass+m2).toFixed(2);
+  buildBody(s); refreshLabel(s); chime(T2.hz,2.2,.06,cls); burst(s.group.position,new THREE.Color(T2.col),160,12,.8);
+  const lim=circumbinaryLimit(sep); const lost=[];
+  for(const p of [...s.planets]) if(p.d.orbit<lim){ stripMoons(p); fling(s,p,.5); lost.push(p.d.name); }
+  if(lost.length) toast(`${d.name} is now a pair; ${lost.join(', ')} ${lost.length===1?'was':'were'} flung from the unstable inner orbits`); else toast(`${d.name} is now a ${d.cls}+${cls} pair`);
+  discover('binary'); discover(cls); select(s,false); changed();
+  if(dist<s.T.r*1.3){ setTimeout(()=>{ if(stars.includes(s)&&s.d.binary) mergeStars(s,true); },900); } }
 function plantHole(pt){
   const d={name:makeName(),mass:+rand(4,14).toFixed(1),x:+pt.x.toFixed(2),z:+pt.z.toFixed(2),seed:rand(0,60)};
   const h=makeHole(d,true); rebuildAllOrbits(); bindNearby(h);

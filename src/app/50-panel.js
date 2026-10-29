@@ -13,7 +13,9 @@ function select(o,zoom=true){
 }
 function stat(k,v){ return `<div><dt>${k}</dt><dd>${v}</dd></div>`; }
 function fateText(s){ const d=s.d; if(feeding(s)){ const y=(d.mass-.08)/transferRate(s,s.boundHole); return `consumed in ${fmtYears(y)}${realAt(y)}`; }
-  const L=lifetime(s); if(!isFinite(L)) return 'stable for longer than the universe';
+  const mi=mergeIn(s); const L=lifetime(s);
+  if(isFinite(mi)&&(!isFinite(L)||mi<L-d.age)) return `the pair merges in ${fmtYears(mi)}${realAt(mi)}`;
+  if(!isFinite(L)) return 'stable for longer than the universe';
   const massive=primaryMass(s)>=8, G=L*.1;
   if(d.age<L){ const y=L-d.age; return `${massive?'red supergiant':'red giant'} in ${fmtYears(y)}${realAt(y)}`; }
   const y=L+G-d.age; return `${massive?(primaryMass(s)>20?'collapse to a black hole':'supernova'):'white dwarf'} in ${fmtYears(y)}${realAt(y)}`; }

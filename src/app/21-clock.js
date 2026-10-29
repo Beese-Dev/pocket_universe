@@ -21,9 +21,11 @@ function eventSoon(){ if(ypr<1e3||!slowOn) return null; const win=ypr*2.5;
   for(const s of stars){ const L=lifetime(s); if(isFinite(L)){ const G=L*.1, a=s.d.age, massive=primaryMass(s)>=8;
       if(a<L&&L-a<win) return {s,what:`${s.d.name} is about to swell into a red ${massive?'supergiant':'giant'}`};
       if(a>=L&&L+G-a<win) return {s,what:massive?(primaryMass(s)>20?`${s.d.name} is about to collapse`:`${s.d.name} is about to go supernova`):`${s.d.name} is about to shed its outer layers`}; }
-    if(feeding(s)&&(s.d.mass-.08)/transferRate(s,s.boundHole)<win) return {s,what:`${s.d.name} is about to be swallowed`}; }
+    if(feeding(s)&&(s.d.mass-.08)/transferRate(s,s.boundHole)<win) return {s,what:`${s.d.name} is about to be swallowed`};
+    const mi=mergeIn(s); if(mi<win) return {s,what:`${s.d.name}'s two stars are about to merge`}; }
   return null; }
 function realAt(y){ return ypr>0?` · ${fmtReal(y/ypr)} at this speed`:''; }
+function mergeIn(s){ const b=s.d.binary; if(!b||s.d.cls==='P'||s.d.cls==='D') return Infinity; const T=mergeTimeYears(b.sep,s.T.r,STAR_TYPES[b.cls].r,!!s.d.bound); return isFinite(T)?T-(s.d.age-(b.since||0)):Infinity; }
 function primaryMass(s){ return s.d.binary?Math.max(.1,s.d.mass-STAR_TYPES[s.d.binary.cls].m):s.d.mass; }
 function lifetime(s){ const c=s.d.cls; if(c==='P'||c==='D') return Infinity; return lifetimeYears(primaryMass(s)); }
 function moonPeriodYears(p,md){ return moonPeriodYearsLib(p.d,md); }

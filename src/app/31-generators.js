@@ -3,7 +3,7 @@ function rollClass(){ let r=RNG(),cls='M'; for(const k in STAR_TYPES){ r-=STAR_T
 function genStar(x,z){
   const cls=rollClass(), T=STAR_TYPES[cls], n=catalogN++;
   const d={name:makeName(),catalog:'PU-'+String(n).padStart(4,'0'),cls,temp:Math.round(rand(T.t[0],T.t[1])/10)*10,mass:+(T.m*rand(.85,cls==='O'?1.6:1.15)).toFixed(2),x,z,seed:rand(0,60),age:0,planets:[]};
-  if(stars.length>=2&&RNG()<.14){ const c2=pick(['G','K','K','M','M','A','F']); d.binary={cls:c2,sep:+(T.r+STAR_TYPES[c2].r+rand(3,6)).toFixed(1),seed:rand(0,60)}; d.mass=+(d.mass+STAR_TYPES[c2].m*rand(.85,1.15)).toFixed(2); }
+  if(stars.length>=2&&RNG()<.14){ const c2=pick(['G','K','K','M','M','A','F']); d.binary={cls:c2,sep:+(T.r+STAR_TYPES[c2].r+rand(3,6)).toFixed(1),seed:rand(0,60),since:0}; d.mass=+(d.mass+STAR_TYPES[c2].m*rand(.85,1.15)).toFixed(2); }
   return d;
 }
 function genPlanet(s,orbit,size,type){

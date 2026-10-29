@@ -128,6 +128,7 @@ void main(){ vec3 p=normalize(vObj); vec3 V=normalize(cameraPosition-vWorld);
   vec3 c=mix(vec3(0.15,0.65,0.75),vec3(0.85,0.25,0.6),smoothstep(-0.3,0.4,n2));
   c+=vec3(1.0,0.55,0.25)*fil*1.2;
   if(uKind>0.5){ c=mix(vec3(0.2,0.8,0.55),vec3(0.3,0.5,1.0),smoothstep(-0.3,0.4,n2)); c+=vec3(1.0,0.4,0.5)*rim*0.8+vec3(0.9,0.95,0.6)*fil*0.9; }
+  if(uKind>1.5){ c=mix(vec3(0.9,0.3,0.15),vec3(0.6,0.15,0.25),smoothstep(-0.3,0.4,n2)); c+=vec3(1.0,0.7,0.4)*rim*0.9+vec3(1.0,0.5,0.2)*fil; }
   float a=(rim*0.55*(0.5+0.5*f)+fil*0.55+0.04)*fade;
   gl_FragColor=vec4(c*a,a); }`;
 

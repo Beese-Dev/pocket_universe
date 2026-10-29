@@ -25,3 +25,9 @@ export function tidalRadius(starR,starM,holeM,holeR){ return starR*Math.cbrt(hol
 export function hillRadius(d,Ms,Mp){ return d*Math.cbrt(Ms/(3*Math.max(Mp,1e-6))); }
 /** Long-term stable orbit limit: about half the Hill radius for prograde orbits. */
 export function stableLimit(d,Ms,Mp){ return .5*hillRadius(d,Ms,Mp); }
+/** Time for a close binary to spiral together and merge, in years: contact pairs in a few Myr, climbing steeply with separation. Infinity when too wide to matter. */
+export function mergeTimeYears(sep,r1,r2,squeezed=false){ const x=sep/Math.max(r1+r2,.1); if(x>3) return Infinity; const t=2e7*Math.pow(x,5); return squeezed?t*.3:t; }
+/** Class of a main-sequence star of mass M, by nearest catalogue mass in log space. */
+export function classForMass(M,catalogue){ let best='G',bd=1e9; for(const k in catalogue){ const m=catalogue[k].m; if(!m||k==='P'||k==='D') continue; const d=Math.abs(Math.log(M/m)); if(d<bd){ bd=d; best=k; } } return best; }
+/** Circumbinary stability: planets closer than about 2.3 separations to a pair are not on stable orbits. */
+export function circumbinaryLimit(sep){ return 2.3*sep; }

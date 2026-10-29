@@ -32,7 +32,9 @@ function frame(t){
         s.d.x=h.d.x+Math.cos(b.angle)*b.r; s.d.z=h.d.z+Math.sin(b.angle)*b.r; s.group.position.set(s.d.x,0,s.d.z); if(doOrbits&&dy>0) s.planets.forEach(rebuildOrbit); } }
     if(feeding(s)){ stepTransfer(s,s.boundHole,dy,dt); if(!stars.includes(s)) continue; } else if(s.stream) dropStream(s);
     for(const sun of s.suns){ sun.mat.uniforms.uTime.value=now; if(sun.beams) sun.beams.rotation.y+=dt*9; if(s.d.giant&&sun===s.suns[0]) sun.corona.material.color.copy(sun.col).lerp(new THREE.Color(1,.45,.2),sun.mat.uniforms.uSwell.value*.8); if(sun.flare>0){ sun.flare=Math.max(0,sun.flare-dt/2.5); } }
-    if(s.pair) s.pair.rotation.y+=Math.min(TAU/periodYears(s.d.binary.sep,s.d.mass)*dy,.25);
+    if(s.pair){ s.pair.rotation.y+=Math.min(TAU/periodYears(s.d.binary.sep,s.d.mass)*dy,.25);
+      const T=mergeTimeYears(s.d.binary.sep,s.T.r,STAR_TYPES[s.d.binary.cls].r,!!s.d.bound); if(isFinite(T)){ const k=clamp((s.d.age-(s.d.binary.since||0))/T); s.pair.scale.setScalar(1-.55*Math.pow(k,6)); /* the last stretch of the inspiral is visible */
+        if(k>=1&&dy>0){ mergeStars(s,false); if(!stars.includes(s)) continue; } } }
     const a=(now-s.born)/1.4;
     let k=1;
     /* stellar evolution: main sequence, then a giant phase a tenth as long, then the end */

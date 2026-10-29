@@ -12,7 +12,11 @@ function handleTap(x,y){
   if(o){ if(o===sel&&o.kind==='star') growPlanet(o); else if(o===sel){ following=true; } else select(o); return; }
   const pt=new THREE.Vector3(); if(!ray.ray.intersectPlane(plane,pt)){ toast('Tilt the view down to reach open space'); return; } world.worldToLocal(pt);
   const pad=seedMode==='hole'?10:14;
-  for(const s of stars){ if(pt.distanceTo(s.group.position)<outerR(s)+pad){ toast(`Too close to ${s.d.name}. Give it some room.`); return; } }
+  for(const s of stars){ if(pt.distanceTo(s.group.position)<outerR(s)+pad){
+    if(seedMode==='hole'){ toast(`Too close to ${s.d.name}. Give it some room.`); return; }
+    if(mode==='daily'&&daily&&!daily.done){ if(daily.used.stars>=DAILY_BUDGET.stars){ toast('Daily rules: two extra stars only.'); return; } daily.used.stars++; }
+    if(mode==='daily'&&daily&&daily.done){ toast('This run is over.'); return; }
+    formBinary(s,pt); return; } }
   for(const h of holes){ const dd=pt.distanceTo(h.group.position); if(seedMode==='hole'?dd<h.r*8+10:dd<h.r*2.4){ toast(seedMode==='hole'?`Too close to ${h.d.name}.`:`Nothing can form that close to ${h.d.name}.`); return; } }
   if(mode==='daily'&&daily&&!daily.done){ const k=seedMode==='hole'?'holes':'stars'; if(daily.used[k]>=DAILY_BUDGET[k]){ toast(seedMode==='hole'?'Daily rules: one black hole only.':'Daily rules: two extra stars only.'); return; } daily.used[k]++; }
   if(mode==='daily'&&daily&&daily.done){ toast('This run is over. Start today again, or go back to the sandbox.'); return; }
