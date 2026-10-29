@@ -70,17 +70,18 @@ $('#pClose').addEventListener('click',()=>select(null));
 pName.addEventListener('input',()=>{ if(!sel) return; tourFlags.renamed=true; const v=pName.value.trim(); sel.d.name=v||sel.d.name; refreshLabel(sel); changed(); });
 pName.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key==='Escape'){ pName.blur(); } e.stopPropagation(); });
 pName.addEventListener('blur',()=>{ if(sel) pName.value=sel.d.name; });
-addEventListener('keydown',e=>{ if(e.key==='Escape'){ if([...document.querySelectorAll('.sheet')].some(x=>!x.hidden)) closeSheets(); else if(probeFrom){ probeFrom=null; setHint(); toast('Probe stood down.'); } else if(sel) select(null); } });
+addEventListener('keydown',e=>{ if(e.key==='Escape'){ if([...document.querySelectorAll('.sheet')].some(x=>!x.hidden)) closeSheets(); else if(probeFrom){ probeFrom=null; arkMode=false; setHint(); toast('Stood down.'); } else if(seedMode!=='off') setSeed('off'); else if(sel) select(null); } });
 
-function setHint(){ const what=seedMode==='hole'?'plant a black hole':'plant a star';
+function setHint(){ const tap=coarse?'Tap':'Click', armed=seedMode!=='off', what=seedMode==='hole'?'a black hole':'a star';
+  const first=armed?`<span><b>${tap} empty space</b> to place ${what} · ${coarse?'tap Off':'Esc'} to stop</span>`:`<span><b>${tap}</b> anything to select it · <b>press and hold</b> empty space to plant a star</span>`;
   hint.innerHTML=(coarse
-    ?[`<span><b>Tap empty space</b> to ${what}</span>`,'<span><b>Tap a star twice</b> to grow a planet</span>',oneFingerPan?'<span>One finger moves · two fingers spin · pinch to zoom</span>':'<span>One finger spins · two fingers move · pinch to zoom</span>']
-    :[`<span><b>Click empty space</b> to ${what}</span>`,'<span><b>Click a star twice</b> to grow a planet</span>','<span>Drag to spin · scroll to zoom · right-drag or arrow keys to pan</span>']).join(''); }
+    ?[first,'<span><b>Tap a star twice</b> to grow a planet</span>',oneFingerPan?'<span>One finger moves · two fingers spin · pinch to zoom</span>':'<span>One finger spins · two fingers move · pinch to zoom</span>']
+    :[first,'<span><b>Click a star twice</b> to grow a planet</span>','<span>Drag to spin · scroll to zoom · right-drag or arrow keys to pan</span>']).join(''); }
 setHint();
 
 /* a first-minute tour, shown once */
 const TOUR1=[
-  {t:'Welcome to Starcradle, your own small universe. Two systems are already here. Tap anywhere in empty space to plant a star of your own.',done:()=>stars.length>tour.n0},
+  {t:'Welcome to Starcradle, your own small universe. Two systems are already here. Press and hold on empty space to plant a star of your own (or set Plant to Star and tap).',done:()=>stars.length>tour.n0},
   {t:'A new star is born with a disc of dust and gas. Tap the star again, or press Grow a planet, to condense a world out of it.',done:()=>countPlanets()>tour.p0},
   {t:'Tap a planet to select it, then open Field notes to read its weather, gravity, and whether anything lives there.',done:()=>notesOpen&&sel&&sel.kind==='planet'},
   {t:'Time runs on the dial at the top. Try Myr/s and watch stars age. The faint green band around each star is where liquid water can exist.',done:()=>rateIdx===4},
@@ -89,7 +90,7 @@ const TOUR1=[
 const TOUR2=[
   {t:'Going further. Planets form only while a star still has its disc, up to eight. Select a planet and press Add a moon; moons can be selected and renamed too.',done:()=>countMoons()>tour.m0},
   {t:'Anything can be renamed: tap the name at the top of the panel, type, and press Enter. Names appear in space and in share codes.',done:()=>tourFlags.renamed},
-  {t:'Switch Plant to Black hole and tap open space near a system. Orbits bend toward it, nearby stars begin to circle it, and anything that strays too close is torn apart.',done:()=>holes.length>tour.h0},
+  {t:'Set Plant to Black hole and tap open space near a system. Orbits bend toward it, nearby stars begin to circle it, and anything that strays too close is torn apart.',done:()=>holes.length>tour.h0},
   {t:'Select a star and read its Fate. Set the clock to Myr/s to watch it happen: red giants swallow their inner worlds, massive stars explode. Pause with the dial or the space bar.',done:()=>rateIdx===4&&sel&&sel.kind==='star'},
   {t:'Select a planet or a moon and press Launch probe, then tap any destination. The probe flies a real gravity-bent path and reports back on arrival.',done:()=>tourFlags.probe},
   {t:'Share in the menu packs your whole universe into a code a friend can paste to visit. New universe wipes the slate; it asks twice, and your discoveries survive.',done:()=>tourFlags.share},

@@ -1,6 +1,7 @@
 
 <canvas id="c" tabindex="0" aria-label="Starcradle. Click empty space to plant a star."></canvas>
 <div id="labels"></div>
+<div id="hold" hidden aria-hidden="true"></div>
 <div id="ui">
   <div class="top">
     <div class="brand">
@@ -15,8 +16,9 @@
       <button class="chip" id="menuChip" hidden aria-haspopup="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></button>
       <div class="seg" id="seedSeg" role="group" aria-label="What to plant">
         <span class="lead">Plant</span>
-        <button id="seedStar" data-seed="star" aria-pressed="true">Star</button>
-        <button id="seedHole" data-seed="hole" aria-pressed="false">Black hole</button>
+        <button id="seedOff" data-seed="off" aria-pressed="true" title="Taps select; nothing is placed">Off</button>
+        <button id="seedStar" data-seed="star" aria-pressed="false" title="Next tap on empty space plants a star (S)">Star</button>
+        <button id="seedHole" data-seed="hole" aria-pressed="false" title="Next tap on empty space plants a black hole (B)">Black hole</button>
       </div>
       <div class="seg" id="timeSeg" role="group" aria-label="Time speed">
         <span class="lead">Time</span>

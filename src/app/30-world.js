@@ -4,7 +4,7 @@ const HIT=new THREE.SphereGeometry(1,12,8);
 const HITK=coarse?1.6:1; /* thumbs need bigger targets than cursors */
 const hitMat=new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false,transparent:true,opacity:0});
 const labelsEl=$('#labels');
-let stars=[], holes=[], comets=[], rogues=[], remnants=[], hitTargets=[], sel=null, catalogN=1, now=0, desiredDist=null, seedMode='star', visiting=false, homeState=null;
+let stars=[], holes=[], comets=[], rogues=[], remnants=[], hitTargets=[], sel=null, catalogN=1, now=0, desiredDist=null, seedMode='off', visiting=false, homeState=null;
 const effects=[];
 
 function makeLabel(o){ const el=document.createElement('div'); el.className='lbl '+(o.kind==='planet'||o.kind==='moon'?'planet':'star');

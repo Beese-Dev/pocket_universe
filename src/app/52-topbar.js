@@ -1,8 +1,8 @@
 /* ---------- top bar ---------- */
 function setRate(i){ rateIdx=i; ypr=i<0?0:RATES[i].y; document.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.rate===i)); $('#timeChipT').textContent=RATE_NAMES[i+1]; if(mobile&&!$('#timeSheet').hidden) closeSheets(); if(sel) updatePanel(); }
 document.querySelectorAll('[data-rate]').forEach(b=>b.addEventListener('click',()=>setRate(+b.dataset.rate)));
-document.querySelectorAll('[data-seed]').forEach(b=>b.addEventListener('click',()=>{ seedMode=b.dataset.seed; setHint();
-  document.querySelectorAll('[data-seed]').forEach(x=>x.setAttribute('aria-pressed',x===b)); }));
+function setSeed(m){ seedMode=m; setHint(); document.querySelectorAll('[data-seed]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.seed===m))); canvas.style.cursor=m==='off'?'default':'crosshair'; if(m!=='off'&&sel) { /* keep the selection; planting does not need it cleared */ } }
+document.querySelectorAll('[data-seed]').forEach(b=>b.addEventListener('click',()=>setSeed(b.dataset.seed)));
 $('#sound').addEventListener('click',()=>{ soundOn=!soundOn; $('#sound').setAttribute('aria-pressed',soundOn); $('#soundT').textContent=soundOn?'Sound on':'Sound off';
   $('#wave').style.display=soundOn?'':'none'; try{localStorage.setItem(STORE+'-sound',soundOn?'1':'0');}catch(e){}
   if(soundOn){ droneStart(); droneGain(.055); } else droneGain(0); });
@@ -22,6 +22,7 @@ $('#overview').addEventListener('click',overview);
 const keys={};
 addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return; const k=e.key.toLowerCase();
   if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){ keys[k]=true; e.preventDefault(); } if(k==='o') overview(); if(k==='l'){ $('#atlasBtn').click(); }
+  if(k==='s'&&!e.metaKey&&!e.ctrlKey){ setSeed(seedMode==='star'?'off':'star'); } if(k==='b'&&!e.metaKey&&!e.ctrlKey){ setSeed(seedMode==='hole'?'off':'hole'); }
   if(k==='['||k===','){ setRate(Math.max(-1,rateIdx-1)); } if(k===']'||k==='.'){ setRate(Math.min(4,rateIdx+1)); } if(k===' '){ setRate(rateIdx<0?1:-1); e.preventDefault(); } });
 addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
 const _fwd=new THREE.Vector3(), _right=new THREE.Vector3();

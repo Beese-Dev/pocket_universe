@@ -12,23 +12,31 @@ function handleTap(x,y){
     if(ark&&o&&o!==from&&(o.kind!=='planet'||!o.alive||o.d.scorched)){ toast(o.kind==='planet'?`${o.d.name} is not habitable; choose a rocky or ocean world inside a green band.`:'An ark needs a habitable world to land on.'); return; } /* keep aiming */
     probeFrom=null; arkMode=false; setHint(); if(o&&o!==from) launchProbe(from,o,ark); else toast(ark?'Ark stood down.':'Probe stood down.'); return; }
   if(o){ if(o===sel&&o.kind==='star') growPlanet(o); else if(o===sel){ following=true; } else select(o); return; }
+  if(seedMode==='off'){ if(sel) select(null); return; } /* a plain tap on space only clears the selection */
   const pt=new THREE.Vector3(); if(!ray.ray.intersectPlane(plane,pt)){ toast('Tilt the view down to reach open space'); return; } world.worldToLocal(pt);
   const pad=seedMode==='hole'?10:14;
   for(const s of stars){ if(pt.distanceTo(s.group.position)<outerR(s)+pad){
     if(seedMode==='hole'){ toast(`Too close to ${s.d.name}. Give it some room.`); return; }
     if(mode==='daily'&&daily&&!daily.done){ if(daily.used.stars>=DAILY_BUDGET.stars){ toast('Daily rules: two extra stars only.'); return; } daily.used.stars++; }
     if(mode==='daily'&&daily&&daily.done){ toast('This run is over.'); return; }
-    formBinary(s,pt); return; } }
+    formBinary(s,pt); setSeed('off'); return; } }
   for(const h of holes){ const dd=pt.distanceTo(h.group.position); if(seedMode==='hole'?dd<h.r*8+10:dd<h.r*2.4){ toast(seedMode==='hole'?`Too close to ${h.d.name}.`:`Nothing can form that close to ${h.d.name}.`); return; } }
   if(mode==='daily'&&daily&&!daily.done){ const k=seedMode==='hole'?'holes':'stars'; if(daily.used[k]>=DAILY_BUDGET[k]){ toast(seedMode==='hole'?'Daily rules: one black hole only.':'Daily rules: two extra stars only.'); return; } daily.used[k]++; }
   if(mode==='daily'&&daily&&daily.done){ toast('This run is over. Start today again, or go back to the sandbox.'); return; }
-  seedMode==='hole'?plantHole(pt):plantStar(pt);
+  seedMode==='hole'?plantHole(pt):plantStar(pt); setSeed('off'); /* one placement per arming */
 }
 const pointers=new Set(); let tap=null;
-canvas.addEventListener('pointerdown',e=>{ pointers.add(e.pointerId); tap=pointers.size===1?{x:e.clientX,y:e.clientY,t:performance.now(),id:e.pointerId}:null; if(soundOn){ audio(); droneStart(); } });
-addEventListener('pointerup',e=>{ pointers.delete(e.pointerId);
+/* press and hold on empty space plants a star: a ring grows under the pointer and the star lands when it closes */
+let hold=null; const holdEl=document.getElementById('hold');
+function holdCancel(){ if(hold){ clearTimeout(hold.timer); hold=null; holdEl.hidden=true; } }
+canvas.addEventListener('pointerdown',e=>{ pointers.add(e.pointerId); tap=pointers.size===1?{x:e.clientX,y:e.clientY,t:performance.now(),id:e.pointerId}:null; if(soundOn){ audio(); droneStart(); }
+  holdCancel(); if(pointers.size===1&&e.button===0&&seedMode==='off'&&!probeFrom&&!pickAt(e.clientX,e.clientY,coarse)){
+    holdEl.style.left=e.clientX+'px'; holdEl.style.top=e.clientY+'px'; holdEl.hidden=false; holdEl.classList.remove('go'); void holdEl.offsetWidth; holdEl.classList.add('go');
+    hold={x:e.clientX,y:e.clientY,id:e.pointerId,timer:setTimeout(()=>{ const h=hold; holdCancel(); if(!h) return; tap=null; seedMode='star'; handleTap(h.x,h.y); if(seedMode!=='off') setSeed('off'); },560)}; } });
+addEventListener('pointermove',e=>{ if(hold&&hold.id===e.pointerId){ const dx=e.clientX-hold.x,dy=e.clientY-hold.y; if(dx*dx+dy*dy>64) holdCancel(); } });
+addEventListener('pointerup',e=>{ pointers.delete(e.pointerId); holdCancel();
   if(tap&&tap.id===e.pointerId&&e.button===0){ const dx=e.clientX-tap.x,dy=e.clientY-tap.y; if(dx*dx+dy*dy<70&&performance.now()-tap.t<650) handleTap(e.clientX,e.clientY); }
   tap=null; });
-addEventListener('pointercancel',e=>{ pointers.delete(e.pointerId); tap=null; });
-canvas.addEventListener('pointermove',e=>{ if(pointers.size||coarse) return; canvas.style.cursor=pickAt(e.clientX,e.clientY)?'pointer':'crosshair'; });
+addEventListener('pointercancel',e=>{ pointers.delete(e.pointerId); tap=null; holdCancel(); });
+canvas.addEventListener('pointermove',e=>{ if(pointers.size||coarse) return; canvas.style.cursor=pickAt(e.clientX,e.clientY)?'pointer':(seedMode==='off'?'default':'crosshair'); });
 controls.addEventListener('start',()=>{ desiredDist=null; overviewTarget=null; if(eventView&&eventT>2) eventDismiss(); });
