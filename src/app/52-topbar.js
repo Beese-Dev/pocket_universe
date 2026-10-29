@@ -1,7 +1,7 @@
 /* ---------- top bar ---------- */
-function setRate(i){ rateIdx=i; ypr=i<0?0:RATES[i].y; document.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.rate===i)); $('#timeChipT').textContent=RATE_NAMES[i+1]; if(mobile&&!$('#timeSheet').hidden) closeSheets(); if(sel) updatePanel(); }
+function setRate(i){ if(missions){ missions.flags.rateMax=Math.max(missions.flags.rateMax||0,i); } rateIdx=i; ypr=i<0?0:RATES[i].y; document.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.rate===i)); $('#timeChipT').textContent=RATE_NAMES[i+1]; if(mobile&&!$('#timeSheet').hidden) closeSheets(); if(sel) updatePanel(); }
 document.querySelectorAll('[data-rate]').forEach(b=>b.addEventListener('click',()=>setRate(+b.dataset.rate)));
-function setSeed(m){ seedMode=m; setHint(); document.querySelectorAll('[data-seed]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.seed===m))); canvas.style.cursor=m==='off'?'default':'crosshair'; if(m!=='off'&&sel) { /* keep the selection; planting does not need it cleared */ } }
+function setSeed(m){ if(m==='hole'&&!unlocked('holes')){ toast('Black holes unlock at tier 2: complete six missions.'); m='off'; } seedMode=m; setHint(); document.querySelectorAll('[data-seed]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.seed===m))); canvas.style.cursor=m==='off'?'default':'crosshair'; if(m!=='off'&&sel) { /* keep the selection; planting does not need it cleared */ } }
 document.querySelectorAll('[data-seed]').forEach(b=>b.addEventListener('click',()=>setSeed(b.dataset.seed)));
 $('#sound').addEventListener('click',()=>{ soundOn=!soundOn; $('#sound').setAttribute('aria-pressed',soundOn); $('#soundT').textContent=soundOn?'Sound on':'Sound off';
   $('#wave').style.display=soundOn?'':'none'; try{localStorage.setItem(STORE+'-sound',soundOn?'1':'0');}catch(e){}

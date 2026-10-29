@@ -14,7 +14,7 @@ function fling(s,p,kick){ const a=p.angle, v=omega(s,p.d.orbit)*p.d.orbit; kick*
   p.rogue={vel:new THREE.Vector3(-Math.sin(a)*v+Math.cos(a)*kick,0,Math.cos(a)*v+Math.sin(a)*kick),from:s.d.name,origin:s.group.position.clone()};
   rogues.push(p); refreshLabel(p); }
 function supernova(s){
-  const pos=s.group.position.clone(), col=new THREE.Color(1,.85,.7); slowEvent(`${s.d.name} went supernova`); focusEvent(s,`Supernova: ${s.d.name}`,s.d.catalog+':sn');
+  const pos=s.group.position.clone(), col=new THREE.Color(1,.85,.7); mstat('supernovae'); slowEvent(`${s.d.name} went supernova`); focusEvent(s,`Supernova: ${s.d.name}`,s.d.catalog+':sn');
   burst(pos,col,600,42,1.5); shock(pos,new THREE.Color(.8,.9,1),170); flash(pos,110); boom(1,pos);
   const Rv=s.T.r*4.5, lost=[], cores=[], flung=[];
   for(const p of [...s.planets]){ const d=p.d;
@@ -55,7 +55,7 @@ function mergeStars(s,collision){ const d=s.d, b=d.binary; if(!b) return; const 
   d.age=Math.min(d.age,lifetimeYears(M)*.3); /* the merged star looks younger than its parents */
   buildBody(s); refreshLabel(s); s.planets.forEach(rebuildOrbit);
   toast(`${d.name}'s two stars ${collision?'collided':'spiralled together'}: a red nova, and a single ${T.desc} of ${M.toFixed(1)} M☉ remains.`);
-  discover('merger'); if(M>=8) discover('massive-made'); updatePanel(); changed(); }
+  discover('merger'); mstat('merged'); if(M>=8){ discover('massive-made'); mstat('massiveMade'); } updatePanel(); changed(); }
 function makeRogue(rd){ const s=stars.find(x=>x.d.name===rd.from)||stars[0]; if(!s) return;
   const p=makePlanet(s,rd.d,false); detachPlanet(s,p); world.attach(p.holder); p.holder.position.set(rd.x,0,rd.z);
   p.rogue={vel:new THREE.Vector3(rd.vx,0,rd.vz),from:rd.from,origin:new THREE.Vector3(rd.ox,0,rd.oz)}; rogues.push(p); refreshLabel(p); }
@@ -68,7 +68,7 @@ function capture(p,o,dist){
   if(p.smear){ p.smear.parent&&p.smear.parent.remove(p.smear); o.group.add(p.smear); p.smearStale=true; }
   p.mat.uniforms.uStarPos.value=o.group.position; p.mat.uniforms.uStarCol.value=o.lightCol; p.atmo.material.uniforms.uStarPos.value=o.group.position;
   o.planets.push(p); o.planets.sort((a,b)=>a.d.orbit-b.d.orbit); o.d.planets=o.planets.map(x=>x.d);
-  rebuildOrbit(p); refreshLabel(p); toast(`${o.d.name} captured ${p.d.name}`); focusEvent(p,`${o.d.name} captured a rogue world`,p.d.seed+':cap'); chime(o.T.hz*.75,2.2,.05,o.d.cls); discover('captured'); updatePanel(); changed(); }
+  rebuildOrbit(p); refreshLabel(p); mstat('captured'); toast(`${o.d.name} captured ${p.d.name}`); focusEvent(p,`${o.d.name} captured a rogue world`,p.d.seed+':cap'); chime(o.T.hz*.75,2.2,.05,o.d.cls); discover('captured'); updatePanel(); changed(); }
 function stepRogue(p,dy){ const r=p.rogue, h=p.holder.position;
   /* every star and black hole pulls on a free world, so stripped planets can be captured by the hole or slung away */
   for(const s of stars){ _v.copy(s.group.position).sub(h); const d2=_v.lengthSq()+1; _v.normalize().multiplyScalar(GM_UNITS*s.d.mass/d2*dy); r.vel.add(_v); }

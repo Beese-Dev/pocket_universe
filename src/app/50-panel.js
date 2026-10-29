@@ -27,7 +27,7 @@ function updatePanel(){ applyCompact();
   const sw=$('#pSw');
   if(document.activeElement!==pName) pName.value=sel.d.name;
   pNotesBtn.hidden=sel.kind!=='planet'; pNotes.hidden=!(sel.kind==='planet'&&notesOpen); pNotesBtn.setAttribute('aria-expanded',String(notesOpen));
-  pProbe.hidden=!((sel.kind==='planet'&&!sel.rogue&&!sel.smeared)||(sel.kind==='moon'&&!sel.planet.smeared)); pCard.hidden=!(sel.kind==='planet'||sel.kind==='moon'); pEvac.hidden=!(sel.kind==='planet'&&!sel.rogue&&(sel.d.stage||0)>=5);
+  pProbe.hidden=!unlocked('probes')||!((sel.kind==='planet'&&!sel.rogue&&!sel.smeared)||(sel.kind==='moon'&&!sel.planet.smeared)); pCard.hidden=!(sel.kind==='planet'||sel.kind==='moon'); pEvac.hidden=!(sel.kind==='planet'&&!sel.rogue&&(sel.d.stage||0)>=5);
   if(sel.kind==='star'){ const s=sel,d=s.d;
     sw.style.color=s.T.col; $('#pKind').textContent=`Star · ${d.catalog}`;
     const fate=`<div><dt>Fate</dt><dd id="pFate">${fateText(s)}</dd></div>`+(hasDisc(s)?stat('Disc',`dissipates in ${fmtYears(DISC_LIFE-d.age)}`):'');
@@ -67,7 +67,7 @@ pEvac.addEventListener('click',()=>{ if(!sel||sel.kind!=='planet') return; probe
 let arkMode=false;
 pNotesBtn.addEventListener('click',()=>{ notesOpen=!notesOpen; panelCompact=false; updatePanel(); });
 $('#pClose').addEventListener('click',()=>select(null));
-pName.addEventListener('input',()=>{ if(!sel) return; tourFlags.renamed=true; const v=pName.value.trim(); sel.d.name=v||sel.d.name; refreshLabel(sel); changed(); });
+pName.addEventListener('input',()=>{ if(!sel) return; tourFlags.renamed=true; if(missions&&!missions.flags.renamed){ missions.flags.renamed=true; missionsSave(); } const v=pName.value.trim(); sel.d.name=v||sel.d.name; refreshLabel(sel); changed(); });
 pName.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key==='Escape'){ pName.blur(); } e.stopPropagation(); });
 pName.addEventListener('blur',()=>{ if(sel) pName.value=sel.d.name; });
 addEventListener('keydown',e=>{ if(e.key==='Escape'){ if([...document.querySelectorAll('.sheet')].some(x=>!x.hidden)) closeSheets(); else if(probeFrom){ probeFrom=null; arkMode=false; setHint(); toast('Stood down.'); } else if(seedMode!=='off') setSeed('off'); else if(sel) select(null); } });
@@ -85,7 +85,7 @@ const TOUR1=[
   {t:'A new star is born with a disc of dust and gas. Tap the star again, or press Grow a planet, to condense a world out of it.',done:()=>countPlanets()>tour.p0},
   {t:'Tap a planet to select it, then open Field notes to read its weather, gravity, and whether anything lives there.',done:()=>notesOpen&&sel&&sel.kind==='planet'},
   {t:'Time runs on the dial at the top. Try Myr/s and watch stars age. The faint green band around each star is where liquid water can exist.',done:()=>rateIdx===4},
-  {t:'That is the basics. The next lesson covers moons, black holes, probes and sharing, or open the Guide from the menu whenever you like.',done:null,next:'Next lesson'},
+  {t:'That is the basics. Missions (top bar) give you three goals at a time and unlock new tools as you finish them. The next lesson covers moons, black holes, probes and sharing.',done:null,next:'Next lesson'},
 ];
 const TOUR2=[
   {t:'Going further. Planets form only while a star still has its disc, up to eight. Select a planet and press Add a moon; moons can be selected and renamed too.',done:()=>countMoons()>tour.m0},

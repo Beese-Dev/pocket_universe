@@ -48,8 +48,9 @@ function stepProbe(pr,dy){ const d=pr.d; const target=findTarget(d.tk,d.tn);
   return true; }
 function probeArrives(pr,target){ const d=pr.d; burst(pr.pos,new THREE.Color(.7,1,.85),50,3,.4); chime(1760,2,.05,'A'); dropProbe(pr);
   if(d.civ){ toast(`${d.name} reached ${target.d.name}`); return; }
+  if(missions){ missions.flags.arrivals.push({from:d.from,to:target.d.name}); if(missions.flags.arrivals.length>40) missions.flags.arrivals.shift(); missionsSave(); }
   if(d.ark){ const t=target; if(t.kind==='planet'&&t.alive&&!t.d.scorched&&!t.d.extinct){ t.d.lifeAge=Math.max(t.d.lifeAge||0,Math.min(d.lifeAge||1.5e9,2.5e9)); t.d.sinceExt=1e12; t.d.stage=stageFor(t.d.lifeAge,t.d.sinceExt); t.mat.uniforms.uCiv.value=stageOf(t.d.stage).lights; refreshLabel(t);
-      toast(`The people of ${d.from} have settled ${t.d.name}`); discover('evacuated'); focusEvent(t,`Settled: ${t.d.name}`,t.d.seed+':settle'); changed(); }
+      toast(`The people of ${d.from} have settled ${t.d.name}`); discover('evacuated'); mstat('evacuated'); focusEvent(t,`Settled: ${t.d.name}`,t.d.seed+':settle'); changed(); }
     else toast(`The ark from ${d.from} found ${t.d.name} uninhabitable; nothing survived the landing.`); return; }
   const years=simT-d.t0, au=d.d0/15; const rows=[];
   if(target.kind==='planet'){ rows.push(['Type',planetKind(target)],...notesFor(target).rows); }

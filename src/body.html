@@ -31,6 +31,7 @@
       </div>
       <button class="chip" id="discBtn"><span>Discoveries</span><span class="n" id="discN">0/20</span></button>
       <button class="chip hot" id="dailyBtn" title="Today's challenge: same universe for everyone, one billion years, one score"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg><span>Daily</span></button>
+      <button class="chip" id="missBtn"><span>Missions</span><span class="n" id="missN">T0</span></button>
       <button class="chip" id="atlasBtn" aria-pressed="false"><span>Atlas</span></button>
       <button class="chip" id="guideBtn"><span>Guide</span></button>
       <button class="chip" id="shareBtn"><span>Share</span></button>
@@ -95,6 +96,12 @@
     <div class="prog"><i id="discBar" style="width:0"></i></div>
     <p id="discP"></p>
     <div class="disc" id="discGrid"></div>
+  </div>
+</div>
+<div class="sheet" id="missSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="missH">
+    <div class="ph"><h2 id="missH">Missions</h2><button class="x" data-close aria-label="Close">×</button></div>
+    <div id="missList"></div>
   </div>
 </div>
 <div class="sheet" id="dailySheet" hidden>

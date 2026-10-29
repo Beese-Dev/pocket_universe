@@ -11,6 +11,7 @@ function plantStar(pt){
 }
 /* planting onto a system adds a companion star; planting onto the star itself is a collision */
 function formBinary(s,pt){ const d=s.d;
+  if(!unlocked('companions')){ toast('Companion stars unlock at tier 1: complete three missions.'); return; }
   if(d.cls==='P'||d.cls==='D'){ toast(`${d.name} is a compact remnant; nothing can share its orbit.`); return; }
   if(d.binary){ toast(`${d.name} is already a pair.`); return; }
   const cls=rollClass(), T2=STAR_TYPES[cls], dist=pt.distanceTo(s.group.position);
@@ -77,7 +78,7 @@ function disruptStar(s,h){ const a=s.group.position.clone(), b=h.group.position.
   burst(a,s.col,220,10,.8); burst(mid,new THREE.Color(1,.8,.5),200,14,.7); flash(b,h.r*16); shock(b,new THREE.Color(1,.7,.4),80); boom(.8,b);
   dropStream(s); world.remove(s.group); s.labelEl.remove(); s.planets.forEach(killPlanet); stars=stars.filter(x=>x!==s); hitTargets=hitTargets.filter(x=>x!==s.hit);
   if(sel===s||(sel&&sel.star===s)) select(h); growHole(h,s.d.mass*.5);
-  toast(`${h.d.name} tore ${s.d.name} apart. Half its mass fell into the black hole.`); discover('tde'); changed(); }
+  mstat('tde'); toast(`${h.d.name} tore ${s.d.name} apart. Half its mass fell into the black hole.`); discover('tde'); changed(); }
 /* mass transfer: a donor star overflowing its Roche lobe onto the hole */
 function rocheR(s,h){ return tidalR(s,h)*2.3; }
 function feeding(s){ return !!(s.d.bound&&s.boundHole&&s.d.cls!=='P'&&s.d.cls!=='D'&&s.d.bound.r<rocheR(s,s.boundHole)); }
@@ -100,7 +101,7 @@ function consumeStar(s,h){ const pos=s.group.position.clone(); slowEvent(`${h.d.
   dropStream(s); world.remove(s.group); s.labelEl.remove(); stars=stars.filter(x=>x!==s); hitTargets=hitTargets.filter(x=>x!==s.hit);
   if(sel===s) select(h); growHole(h,s.d.mass); toast(`${h.d.name} swallowed what was left of ${s.d.name}.`); discover('consumed'); changed(); }
 function transferRate(s,h){ return (s.d.mass0||s.d.mass)*1e-8*(1+(rocheR(s,h)-s.d.bound.r)/rocheR(s,h)*2); } /* solar masses per year */
-function stepTransfer(s,h,dy,dt){ const d=s.d; if(!d.mass0) d.mass0=d.mass; if(!s.stream){ makeStream(s,h); toast(`${d.name} is overflowing onto ${h.d.name}: an X-ray binary`); discover('xray'); focusEvent(h,`X-ray binary: ${d.name} feeds ${h.d.name}`,h.d.seed+':xray'+d.catalog); }
+function stepTransfer(s,h,dy,dt){ const d=s.d; if(!d.mass0) d.mass0=d.mass; if(!s.stream){ makeStream(s,h); toast(`${d.name} is overflowing onto ${h.d.name}: an X-ray binary`); discover('xray'); mstat('xray'); focusEvent(h,`X-ray binary: ${d.name} feeds ${h.d.name}`,h.d.seed+':xray'+d.catalog); }
   const rate=transferRate(s,h); const dm=Math.min(d.mass,rate*dy); d.mass=+(d.mass-dm).toFixed(4); h.d.mass=+(h.d.mass+dm).toFixed(4);
   s.massK=Math.pow(d.mass/d.mass0,.6); h.feed=Math.min(1,h.feed+dt); if(h.feed>=1&&Math.random()<dt*.5) refreshLabel(h);
   if(!d.unbound&&d.mass<d.mass0*.5&&s.planets.length){ d.unbound=true; for(const p of [...s.planets]){ stripMoons(p); fling(s,p,1); } toast(`${d.name} has lost half its mass; its planets drift free`); discover('rogue'); changed(); }

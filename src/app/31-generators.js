@@ -1,5 +1,5 @@
 /* ---------- generators ---------- */
-function rollClass(){ let r=RNG(),cls='M'; for(const k in STAR_TYPES){ r-=STAR_TYPES[k].w; if(r<=0){cls=k;break;} } return cls; }
+function rollClass(){ const allowed=classesForTier(curTier()); const tot=allowed.reduce((a,k)=>a+STAR_TYPES[k].w,0); let r=RNG()*tot,cls=allowed[allowed.length-1]; for(const k of allowed){ r-=STAR_TYPES[k].w; if(r<=0){cls=k;break;} } return cls; }
 function genStar(x,z){
   const cls=rollClass(), T=STAR_TYPES[cls], n=catalogN++;
   const d={name:makeName(),catalog:'PU-'+String(n).padStart(4,'0'),cls,temp:Math.round(rand(T.t[0],T.t[1])/10)*10,mass:+(T.m*rand(.85,cls==='O'?1.6:1.15)).toFixed(2),x,z,seed:rand(0,60),age:0,planets:[]};

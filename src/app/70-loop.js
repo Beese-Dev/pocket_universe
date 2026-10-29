@@ -117,7 +117,7 @@ function frame(t){
     for(const h of holes){ const d=h.group.position.distanceTo(_tb)*.7; if(d<bd){ bd=d; best=h; isHole=true; } }
     if(best) droneSet(isHole?34:best.T.hz/4,isHole?'hole':best.d.cls); nearPulsar=best&&!isHole&&best.d.cls==='P'; }
   if(nearPulsar&&soundOn&&drone&&now>nextTick){ tick(); nextTick=now+.36; }
-  tourTick(dt); atlasTick(dt); dailyTick(dy); if(doOrbits) dailyStatus();
+  tourTick(dt); atlasTick(dt); dailyTick(dy); missionsTick(dt); if(doOrbits) dailyStatus();
   if(sel&&sel.kind==='hole'&&sel.feed>0&&massT++%30===0) updatePanel();
   if(sel&&sel.kind==='star'&&massT%20===0) updateHZ(sel);
   if(sel&&sel.kind==='star'){ const f=document.getElementById('pFate'), ag=document.getElementById('pAge'); if(f) f.textContent=fateText(sel); if(ag) ag.textContent=fmtYears(sel.d.age); if(feeding(sel)&&massT++%30===0) updatePanel(); }
@@ -145,7 +145,7 @@ function start(snap){
   const state=(snap&&Array.isArray(snap.stars))?snap:(loadSaved()||sample());
   loadState(state); desiredDist=null;
   try{ const sv=localStorage.getItem(STORE+'-sound'); if(sv==='0'){ soundOn=false; $('#sound').setAttribute('aria-pressed','false'); $('#soundT').textContent='Sound off'; $('#wave').style.display='none'; } }catch(e){}
-  renderDisc(); layout(); barH(); try{ if(localStorage.getItem(STORE+'-tour')==='1'&&!localStorage.getItem(STORE+'-lessons')) tourSave({lesson:2,step:0}); }catch(e){} setTimeout(tourStart,1200);
+  missionsLoad(); syncUnlockUI(); renderMissions(); renderDisc(); layout(); barH(); try{ if(localStorage.getItem(STORE+'-tour')==='1'&&!localStorage.getItem(STORE+'-lessons')) tourSave({lesson:2,step:0}); }catch(e){} setTimeout(tourStart,1200);
   requestAnimationFrame(t=>{ last=t; frame(t); });
 }
 try{ window.claude?.hot?.snapshot?.(()=>serialize()); }catch(e){}
